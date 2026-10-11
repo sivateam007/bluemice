@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">BlueMice</string>
+    <string name="tab_mouse">Mouse</string>
+    <string name="tab_keyboard">Keyboard</string>
+    <string name="tab_gamepad">Gamepad</string>
+    <string name="status_disconnected">Disconnected - Pair from PC</string>
+    <string name="status_scanning">Scanning…</string>
+    <string name="status_connected">Connected to %s</string>
+    <string name="btn_left_click">Left</string>
+    <string name="btn_right_click">Right</string>
+    <string name="btn_middle_click">Middle</string>
+    <string name="btn_scroll">Scroll</string>
+    <string name="channel_hid">HID Service</string>
+    <string name="notif_hid_running">BlueMice is running - waiting for PC connection</string>
+    <string name="service_label">BlueMice HID Service</string>
+    <string name="perm_bluetooth_reason">Bluetooth is required to act as a mouse/keyboard/gamepad for your PC</string>
+    <string name="perm_notification_reason">Notification is required to keep the HID service running</string>
+</resources>

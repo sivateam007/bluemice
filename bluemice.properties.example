@@ -1,0 +1,15 @@
+# BlueMice release signing config.
+#
+# Copy this file to `bluemice.properties` (same directory) and fill in the
+# values. It is git-ignored so your credentials never get committed.
+#
+# Generate the keystore once, then keep it safe — losing it means you can
+# never ship an update that Android will accept over an existing install:
+#
+#   keytool -genkey -v -keystore bluemice.jks -keyalg RSA -keysize 2048 ^
+#       -validity 10000 -alias bluemice
+#
+store.file=bluemice.jks
+store.password=CHANGE_ME
+key.alias=bluemice
+key.password=CHANGE_ME
