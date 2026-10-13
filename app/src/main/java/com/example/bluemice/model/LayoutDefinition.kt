@@ -114,6 +114,8 @@ object PredefinedLayouts {
             LayoutKey("\u2193", keyCode = KC.KEY_ARROW_DOWN, width = 1.5f),
             LayoutKey("\u2190", keyCode = KC.KEY_ARROW_LEFT, width = 1.5f),
             LayoutKey("\u2192", keyCode = KC.KEY_ARROW_RIGHT, width = 1.5f),
+            // Language keyboard / type-bar row — rendered via the languageBoard slot.
+            LayoutKey("Language", keyType = "languageBoard", width = 12f, height = 1f, backgroundColor = 0xFF16162A)
         ))
     ), "keyboard")
 

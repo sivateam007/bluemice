@@ -410,7 +410,11 @@ fun EditModeBar(
 ) {
     var showLoadMenu by remember { mutableStateOf(false) }
 
-    Row(Modifier.fillMaxWidth().background(CardSurface).padding(horizontal = 8.dp, vertical = 4.dp),
+    // Scrollable so Save/Done stay reachable: on a phone this row carries ~10
+    // controls and they otherwise run straight off the right edge.
+    Row(Modifier.fillMaxWidth().background(CardSurface)
+        .horizontalScroll(rememberScrollState())
+        .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A2A3A))
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { showLoadMenu = true }

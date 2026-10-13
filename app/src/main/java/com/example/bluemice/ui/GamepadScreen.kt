@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
@@ -45,6 +47,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.example.bluemice.ui.theme.CardSurface
+import com.example.bluemice.ui.theme.TextPrimary
+import com.example.bluemice.ui.theme.TextSecondary
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -212,7 +217,15 @@ fun GamepadScreen(
 
     Box(Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(NavyDark, Color(0xFF0C1F33)))).padding(8.dp)
+            modifier = Modifier.fillMaxSize()
+                .background(Brush.verticalGradient(listOf(NavyDark, Color(0xFF0C1F33))))
+                .padding(
+                    start = 8.dp, end = 8.dp,
+                    top = if (isLandscape) 4.dp else 8.dp,
+                    // Reserve the strip the floating EditModeBar occupies, so the
+                    // last row (and its Save/Done controls) are never covered.
+                    bottom = if (isEditing) 64.dp else if (isLandscape) 4.dp else 8.dp
+                )
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Gamepad", color = CyanNeon, fontSize = 15.sp, fontWeight = FontWeight.Bold)
@@ -268,7 +281,17 @@ fun GamepadScreen(
                 }
             }
 
-            if (isEditing) {
+            // One framed panel holds the pad in both orientations - it keeps the grid
+            // aligned and gives portrait and landscape the same surface to sit in.
+            Box(
+                Modifier.fillMaxWidth().weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(CardSurface)
+                    .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                contentAlignment = if (isLandscape) Alignment.Center else Alignment.TopCenter
+            ) {
+                if (isEditing) {
                 EditableLayoutView(
                     rows = editRows,
                     onEditKey = { ri, ki -> editRowIdx = ri; editKeyIdx = ki; editingKey = editRows[ri][ki]; showEditKeySheet = true },
@@ -291,9 +314,9 @@ fun GamepadScreen(
                     },
                     onAddToRow = { ri -> addTargetRow = ri; showAddKeySheet = true },
                     history = layoutHistory,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
                 )
-            } else if (!isEditing) {
+                } else {
                 val layoutEmpty = currentLayout == null || currentLayout.rows.none { it.keys.isNotEmpty() }
                 if (layoutEmpty) {
                     EmptyLayoutState(
@@ -307,6 +330,7 @@ fun GamepadScreen(
                             if (id == "L") { leftX = x; leftY = y; isLeftTouched = t } else { rightX = x; rightY = y; isRightTouched = t }
                         })
                 }
+            }
             }
         }
 
