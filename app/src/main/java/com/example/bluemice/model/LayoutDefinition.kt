@@ -565,27 +565,45 @@ object PredefinedLayouts {
      * wheel and a small utility row. Everything here is an ordinary layout key,
      * so the user can move, resize, restyle or delete every single one of them.
      */
+    /**
+     * Trackpad-first mouse remote.
+     *
+     * Every row sums to the same 12 units, so the columns line up down the pad -
+     * which is what lets the arrows sit as a genuine cross (Up centred, with Left /
+     * Down / Right beneath it) instead of a flat strip, while Enter and Esc flank
+     * the top of the cross and Tab and BkSp the bottom. The touchpad row fills the
+     * panel and the scroll wheel fills the space beside it like the wheel on a real
+     * mouse; the buttons sit under the pad with Left Click widest, because it is
+     * the one that gets hit most.
+     */
     val MOUSE_DEFAULT = LayoutDefinition("Mouse Default", listOf(
+        // R1 - hero: trackpad with the scroll wheel down its right edge.
+        // height only matters in the editor - live, both stretch with the row.
         LayoutRow(listOf(
-            LayoutKey("Left Click", mouseButton = 1, width = 1.5f),
-            LayoutKey("Right Click", mouseButton = 2, width = 1.5f),
-            LayoutKey("Middle Click", mouseButton = 4, width = 1.5f),
+            LayoutKey("Touchpad", keyType = "touchpad", width = 9f, height = 1.5f),
+            LayoutKey("Scroll", keyType = "scroll", width = 3f, height = 1.5f)
         )),
+        // R2 - thumb row under the pad: Left > Right > Middle.
         LayoutRow(listOf(
-            LayoutKey("Touchpad", keyType = "touchpad", width = 4.5f, height = 2.5f),
+            LayoutKey("Left Click", mouseButton = 1, width = 5f, height = 1.2f),
+            LayoutKey("Right Click", mouseButton = 2, width = 4f, height = 1.2f),
+            LayoutKey("Middle Click", mouseButton = 4, width = 3f, height = 1.2f)
         )),
+        // R3 - top of the arrow cross, with Enter and Esc in the wings.
         LayoutRow(listOf(
-            LayoutKey("Scroll", keyType = "scroll", width = 1f, height = 2f),
-            LayoutKey("↑", keyCode = 0x52, width = 1.15f),
-            LayoutKey("↓", keyCode = 0x51, width = 1.15f),
-            LayoutKey("←", keyCode = 0x50, width = 1.15f),
-            LayoutKey("→", keyCode = 0x4F, width = 1.15f),
+            LayoutKey("Enter", keyCode = 0x28, width = 3f),
+            LayoutKey("", keyType = "spacer", width = 2f),
+            LayoutKey("↑", keyCode = 0x52, width = 2f),
+            LayoutKey("", keyType = "spacer", width = 2f),
+            LayoutKey("Esc", keyCode = 0x29, width = 3f)
         )),
+        // R4 - bottom of the cross; Tab and BkSp mirror Enter and Esc above.
         LayoutRow(listOf(
-            LayoutKey("Enter", keyCode = 0x28, width = 1.4f),
-            LayoutKey("Tab", keyCode = 0x2B, width = 1.2f),
-            LayoutKey("Esc", keyCode = 0x29, width = 1.2f),
-            LayoutKey("BkSp", keyCode = 0x2A),
+            LayoutKey("Tab", keyCode = 0x2B, width = 3f),
+            LayoutKey("←", keyCode = 0x50, width = 2f),
+            LayoutKey("↓", keyCode = 0x51, width = 2f),
+            LayoutKey("→", keyCode = 0x4F, width = 2f),
+            LayoutKey("BkSp", keyCode = 0x2A, width = 3f)
         ))
     ), "mouse")
 

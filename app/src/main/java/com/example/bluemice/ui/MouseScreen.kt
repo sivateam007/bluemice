@@ -533,7 +533,9 @@ fun MouseScreen(
                             if (defaultLayout != null && defaultLayout.rows.any { it.keys.isNotEmpty() }) {
                                 editRows = defaultLayout.rows.map { it.keys.toMutableList() }
                             } else {
-                                editRows = mutableListOf(mutableListOf(LayoutKey("Left Click", mouseButton = 1, width = 1.5f)), mutableListOf(LayoutKey("Right Click", mouseButton = 2, width = 1.5f)))
+                                // Last-resort seed: keep it in step with the shipped default.
+                                editRows = com.example.bluemice.model.PredefinedLayouts.MOUSE_DEFAULT
+                                    .rows.map { it.keys.toMutableList() }.toMutableList()
                             }
                         }
                     } else {

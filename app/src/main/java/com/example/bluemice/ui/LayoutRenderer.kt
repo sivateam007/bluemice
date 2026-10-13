@@ -69,7 +69,8 @@ private val KCodes = HidReportBuilder.KeyCodes
  *
  * [flexibleRows] is opt-in and only safe inside a non-scrolling parent: a row that
  * owns a touchpad then absorbs the leftover vertical space instead of being pinned
- * to its nominal height.
+ * to its nominal height, and a scroll wheel in that same row stretches with it so
+ * the two read as one trackpad module.
  */
 @Composable
 fun CustomLayoutView(
@@ -95,7 +96,7 @@ fun CustomLayoutView(
                     .fillMaxWidth()
                     .then(if (rowIsFlexible) Modifier.weight(1f, fill = true) else Modifier),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                // Rows mix widget keys (90dp sticks) with 48dp keys; without this the
+                // Rows mix widget keys (80dp sticks) with 48dp keys; without this the
                 // short ones would hang off the top of the row.
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -107,7 +108,11 @@ fun CustomLayoutView(
                         key = key,
                         bleManager = bleManager,
                         baseModifier = rowScopeModifier,
-                        fillHeight = rowIsFlexible && key.keyType == "touchpad",
+                        // The scroll wheel shares the hero row with the touchpad on the
+                        // mouse screen, so it stretches with the pad rather than floating
+                        // as a short strip in the middle of a tall cell.
+                        fillHeight = rowIsFlexible &&
+                            (key.keyType == "touchpad" || key.keyType == "scroll"),
                         widgetSlots = widgetSlots,
                         haptics = haptics,
                         hapticsEnabled = hapticsEnabled,
