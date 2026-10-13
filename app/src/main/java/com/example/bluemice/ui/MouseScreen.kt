@@ -579,7 +579,7 @@ fun MouseScreen(
                         Box(Modifier.clip(RoundedCornerShape(4.dp)).background(Color(0xFF3A3A3A))
                             .clickable { textInput = ""; focusRequester.requestFocus() }
                             .padding(horizontal = 8.dp, vertical = 4.dp)) {
-                            Text("Clear", color = Color(0xFF888888), fontSize = 10.sp)
+                            Text("Clear", color = TextSecondary, fontSize = 10.sp)
                         }
                     }
                 }

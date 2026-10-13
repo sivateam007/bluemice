@@ -204,7 +204,7 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
                 Spacer(Modifier.width(6.dp))
                 Box(Modifier.clip(RoundedCornerShape(8.dp)).background(CardSurface)
                     .clickable { textInput = ""; focusRequester.requestFocus() }
-                    .padding(horizontal = 14.dp, vertical = 10.dp)) { Text("Clear", color = Color(0xFF888888), fontSize = 12.sp) }
+                    .padding(horizontal = 14.dp, vertical = 10.dp)) { Text("Clear", color = TextSecondary, fontSize = 12.sp) }
                 IconButton(onClick = {
                     keyboardMode = if (keyboardMode == "layout") "language" else "layout"
                     settingsManager?.keyboardMode = keyboardMode

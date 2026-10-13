@@ -3,6 +3,7 @@ package com.example.bluemice.ui
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -55,7 +56,6 @@ private val actionBg = Color(0xFF4A2A2A)
 private val enterBg = Color(0xFF2A4A2A)
 private val clearBg = Color(0xFF6A1A1A)
 private val fnBg = Color(0xFF3A3A2A)
-private val bg = SurfaceDark
 
 data class Nk(val lbl: String, val code: Byte, val bg: Color = numBg, val w: Float = 1f)
 
@@ -198,9 +198,23 @@ fun NumpadScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutManag
             }
 
             // Display - mirrors whatever the layout keys just sent.
-            Box(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF0D0D0D)).padding(horizontal = 12.dp),
-                contentAlignment = Alignment.CenterEnd) {
-                Text(disp.ifEmpty { "0" }, color = Color(0xFF4CAF50), fontSize = if (disp.length > 12) 18.sp else 22.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            // Readout styled like a panel-mounted LCD rather than a plain black bar.
+            Box(
+                Modifier.fillMaxWidth().height(46.dp)
+                    .clip(RoundedCornerShape(Dimens.ControlRadius))
+                    .background(Color(0xFF070C14))
+                    .border(1.dp, CardBorder, RoundedCornerShape(Dimens.ControlRadius))
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Text(
+                    disp.ifEmpty { "0" },
+                    color = Color(0xFF4CAF50),
+                    fontSize = if (disp.length > 12) 18.sp else 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    maxLines = 1
+                )
             }
         }
 
