@@ -150,6 +150,7 @@ fun NumpadScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutManag
             verticalArrangement = Arrangement.spacedBy(4.dp)) {
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Numpad", color = Color(0xFF00E5FF), fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { isEditing = !isEditing; if (!isEditing) saveLayout(editRows) }) {
                     Icon(Icons.Default.Edit, null, tint = if (isEditing) Color(0xFF4CAF50) else TextSecondary, modifier = Modifier.size(22.dp))

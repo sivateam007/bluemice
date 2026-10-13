@@ -514,6 +514,7 @@ fun MouseScreen(
         ) {
             // Header row with action buttons
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Mouse", color = Color(0xFF00E5FF), fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { showKeyboard = !showKeyboard; if (showKeyboard) focusRequester.requestFocus() }) {
                     Icon(Icons.Default.Keyboard, null, tint = if (showKeyboard) MaterialTheme.colorScheme.primary else TextSecondary, modifier = Modifier.size(22.dp))
