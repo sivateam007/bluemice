@@ -242,30 +242,10 @@ fun GamepadScreen(
                             if (defaultLayout != null && defaultLayout.rows.any { it.keys.isNotEmpty() }) {
                                 editRows = defaultLayout.rows.map { it.keys.toMutableList() }
                             } else {
-                                editRows = mutableListOf(
-                                    mutableListOf(
-                                        LayoutKey("DPad\u2191", gamepadButton = 12, isGamepad = true),
-                                        LayoutKey("Y", gamepadButton = 3, isGamepad = true)
-                                    ),
-                                    mutableListOf(
-                                        LayoutKey("DPad\u2190", gamepadButton = 13, isGamepad = true),
-                                        LayoutKey("X", gamepadButton = 2, isGamepad = true),
-                                        LayoutKey("A", gamepadButton = 0, isGamepad = true),
-                                        LayoutKey("DPad\u2192", gamepadButton = 15, isGamepad = true)
-                                    ),
-                                    mutableListOf(
-                                        LayoutKey("DPad\u2193", gamepadButton = 14, isGamepad = true),
-                                        LayoutKey("B", gamepadButton = 1, isGamepad = true)
-                                    ),
-                                    mutableListOf(
-                                        LayoutKey("LB", gamepadButton = 4, width = 1.2f, isGamepad = true),
-                                        LayoutKey("LT", gamepadButton = 6, width = 1.2f, isGamepad = true),
-                                        LayoutKey("Sel", gamepadButton = 8, isGamepad = true),
-                                        LayoutKey("St", gamepadButton = 9, isGamepad = true),
-                                        LayoutKey("RT", gamepadButton = 7, width = 1.2f, isGamepad = true),
-                                        LayoutKey("RB", gamepadButton = 5, width = 1.2f, isGamepad = true)
-                                    )
-                                )
+                                // Last-resort seed: keep it in step with the shipped
+                                // default rather than an old hardcoded copy.
+                                editRows = com.example.bluemice.model.PredefinedLayouts.GAMEPAD_DEFAULT
+                                    .rows.map { it.keys.toMutableList() }.toMutableList()
                             }
                         }
                     } else {

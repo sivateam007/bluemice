@@ -196,6 +196,12 @@ private val numpadKeys = listOf(
     PalKey("\u2212", KC.KEY_KP_MINUS), PalKey("*", KC.KEY_KP_ASTERISK),
     PalKey("/", KC.KEY_KP_SLASH), PalKey("Enter", KC.KEY_KP_ENTER, 1.5f),
 )
+/** Composite pads: the whole D-pad cross and the ABXY diamond as one key each. */
+private val gamepadWidgets = listOf(
+    PalKey("D-Pad", keyType = "dpad", w = 4f),
+    PalKey("ABXY", keyType = "face", w = 4f)
+)
+
 private val comboKeys = listOf(
     PalKey("Ctrl+Alt+Del", comboMods = 0x01 or 0x04, comboKey = KC.KEY_DELETE, w = 1.6f),
     PalKey("Ctrl+Shift+Esc", comboMods = 0x01 or 0x02, comboKey = KC.KEY_ESCAPE, w = 1.6f),
@@ -349,6 +355,7 @@ internal fun palKeyToLayoutKey(pk: PalKey) = LayoutKey(
     height = pk.h,
     backgroundColor = when {
         pk.keyType == "stickL" || pk.keyType == "stickR" -> 0xFF14202E
+        pk.keyType == "dpad" || pk.keyType == "face" -> 0xFF14202E
         pk.consumerCode in 0x00B0..0x00CD -> 0xFF3A4A3A
         pk.consumerCode in 0x00E9..0x00EA -> 0xFF2A3A4A
         pk.consumerCode in 0x006F..0x0070 -> 0xFF3A3A2A
@@ -1015,7 +1022,22 @@ private fun GamepadPaletteSheet(
                 }
             }
 
-            // D-Pad
+            // Composite pads - the whole cross / diamond as a single key.
+            Text("Pads", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                gamepadWidgets.forEach { pk ->
+                    Box(Modifier.width(84.dp).height(44.dp).clip(RoundedCornerShape(6.dp))
+                        .background(Color(0xFF14202E))
+                        .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(6.dp))
+                        .clickable { onAdd(pk) }, contentAlignment = Alignment.Center) {
+                        Text(pk.label, color = Color(0xFF00E5FF), fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 1)
+                    }
+                }
+            }
+
+            // Individual D-pad directions, for anyone who wants to place them by hand.
             Text("D-Pad", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(3.dp)) {

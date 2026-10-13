@@ -94,7 +94,10 @@ fun CustomLayoutView(
                 Modifier
                     .fillMaxWidth()
                     .then(if (rowIsFlexible) Modifier.weight(1f, fill = true) else Modifier),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                // Rows mix widget keys (90dp sticks) with 48dp keys; without this the
+                // short ones would hang off the top of the row.
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 row.keys.forEach { key ->
                     // Modifier.weight is a RowScope extension, so the row's constraint
@@ -121,7 +124,10 @@ fun CustomLayoutView(
 private fun widgetHeight(key: LayoutKey): Dp {
     val base = when (key.keyType) {
         "touchpad" -> 140f
-        "stickL", "stickR" -> 90f
+        // Sticks and the D-pad / ABXY pads share one base so they sit flush in a
+        // row instead of top-aligning at three different heights, and so a
+        // three-row controller still fits a landscape viewport.
+        "stickL", "stickR", "dpad", "face" -> 80f
         "scroll" -> 46f
         "typeBar", "languageBoard" -> 44f
         // 48f, not 40f: Material's minimum touch target is 48x48dp, and the old
@@ -130,6 +136,149 @@ private fun widgetHeight(key: LayoutKey): Dp {
         else -> 48f
     }
     return (base * key.height.coerceIn(0.75f, 2.5f)).dp
+}
+
+/* ------------------------------------------------------------------ *
+ * Gamepad pads (D-pad cross + ABXY diamond)
+ * ------------------------------------------------------------------ */
+
+/** Shape a [DirectionPad] draws behind its labels. */
+private enum class PadShape { Cross, Diamond }
+
+/** D-pad buttons in up / down / left / right order (HID indexes 12-15). */
+private val DPAD_BUTTONS = intArrayOf(12, 14, 13, 15)
+
+/** ABXY in the same order: Y on top, A below, X left, B right. */
+private val FACE_BUTTONS = intArrayOf(3, 0, 2, 1)
+
+/** Classic Xbox face-button colours, matching [FACE_BUTTONS]' order. */
+private val FACE_COLORS = listOf(
+    Color(0xFFFDD835), // Y - top
+    Color(0xFF66BB6A), // A - bottom
+    Color(0xFF42A5F5), // X - left
+    Color(0xFFEF5350)  // B - right
+)
+
+/**
+ * Four-way pad shipped as a single [LayoutKey].
+ *
+ * The whole cell is the touch target and the offset of the press picks the
+ * direction, instead of splitting the cell into four fixed sub-buttons: in
+ * landscape the row is wide and short, so four fixed zones would fall under
+ * the 48dp minimum while the cell itself is comfortably large. The drawing is
+ * fitted to `min(width, height)` so the pad stays round at any cell aspect.
+ *
+ * Reports are momentary - a direction is held only while the finger is down.
+ */
+@Composable
+private fun DirectionPad(
+    bleManager: BleHidManager,
+    shape: PadShape,
+    buttons: IntArray,
+    colors: List<Color>,
+    modifier: Modifier = Modifier
+) {
+    // 0 up, 1 down, 2 left, 3 right, -1 idle.
+    var active by remember(buttons) { mutableIntStateOf(-1) }
+
+    BoxWithConstraints(
+        modifier
+            .clip(RoundedCornerShape(Dimens.KeyRadius))
+            .background(CardSurface)
+            .border(
+                1.dp,
+                if (active >= 0) AccentCyan.copy(alpha = 0.55f) else Color(0x33FFFFFF),
+                RoundedCornerShape(Dimens.KeyRadius)
+            )
+            .pointerInput(buttons) {
+                var last = -1
+                awaitPointerEventScope {
+                    while (true) {
+                        val change = awaitPointerEvent().changes.firstOrNull { it.pressed }
+                        val dir = if (change == null) -1 else {
+                            val w = size.width.toFloat().coerceAtLeast(1f)
+                            val h = size.height.toFloat().coerceAtLeast(1f)
+                            val nx = change.position.x / w * 2f - 1f
+                            val ny = change.position.y / h * 2f - 1f
+                            when {
+                                // Small dead centre so a careless tap does not fire a direction.
+                                nx * nx + ny * ny < 0.05f -> -1
+                                abs(nx) > abs(ny) -> if (nx > 0f) 3 else 2
+                                else -> if (ny > 0f) 1 else 0
+                            }
+                        }
+                        if (dir != last) {
+                            last = dir
+                            active = dir
+                            if (dir < 0) bleManager.sendEmptyGamepadReport()
+                            else bleManager.sendGamepadReport(0, 0, 0, 0, 1 shl buttons[dir])
+                        }
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        // Everything is laid out inside a square of side min(w, h), so the pad
+        // never stretches into an oval no matter how wide the row becomes.
+        Box(Modifier.size(minOf(maxWidth, maxHeight)), contentAlignment = Alignment.Center) {
+            val dim = Color.White.copy(alpha = 0.07f)
+            val arm = 0.34f
+
+            if (shape == PadShape.Cross) {
+                fun armMod(align: Alignment) =
+                    Modifier.align(align).fillMaxWidth(arm).fillMaxHeight(0.5f)
+                val live = AccentCyan.copy(alpha = 0.34f)
+                Box(armMod(Alignment.TopCenter)
+                    .background(if (active == 0) live else dim, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)))
+                Box(armMod(Alignment.BottomCenter)
+                    .background(if (active == 1) live else dim, RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp)))
+                val hArm = Modifier.fillMaxWidth(0.5f).fillMaxHeight(arm)
+                Box(Modifier.align(Alignment.CenterStart).then(hArm)
+                    .background(if (active == 2) live else dim, RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp)))
+                Box(Modifier.align(Alignment.CenterEnd).then(hArm)
+                    .background(if (active == 3) live else dim, RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp)))
+                // Hub covers the four inner arm ends so the cross reads as one piece.
+                Box(Modifier.align(Alignment.Center).fillMaxWidth(arm).aspectRatio(1f)
+                    .background(if (active >= 0) AccentCyan.copy(alpha = 0.30f) else dim, CircleShape))
+
+                Icon(Icons.Default.KeyboardArrowUp, "Up",
+                    tint = if (active == 0) AccentCyan else TextSecondary,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 3.dp).size(16.dp))
+                Icon(Icons.Default.KeyboardArrowDown, "Down",
+                    tint = if (active == 1) AccentCyan else TextSecondary,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp).size(16.dp))
+                Icon(Icons.Default.KeyboardArrowLeft, "Left",
+                    tint = if (active == 2) AccentCyan else TextSecondary,
+                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 3.dp).size(16.dp))
+                Icon(Icons.Default.KeyboardArrowRight, "Right",
+                    tint = if (active == 3) AccentCyan else TextSecondary,
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 3.dp).size(16.dp))
+            } else {
+                val glyphs = listOf("Y", "A", "X", "B")
+                val places = listOf(
+                    Alignment.TopCenter, Alignment.BottomCenter,
+                    Alignment.CenterStart, Alignment.CenterEnd
+                )
+                places.forEachIndexed { i, place ->
+                    val on = active == i
+                    Box(
+                        Modifier.align(place).fillMaxWidth(0.40f).aspectRatio(1f)
+                            .clip(CircleShape)
+                            .background(colors[i].copy(alpha = if (on) 0.90f else 0.20f))
+                            .border(1.dp, colors[i].copy(alpha = if (on) 1f else 0.45f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            glyphs[i],
+                            color = if (on) Color.Black else colors[i].copy(alpha = 0.85f),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 /** One key inside a live row: a screen-supplied widget, or a plain pressable key. */
@@ -173,6 +322,26 @@ private fun KeyCell(
             NeonStick(
                 label = stickId,
                 onTouch = { x, y, touched -> onStickTouch(stickId, x, y, touched) },
+                modifier = slotModifier
+            )
+            return
+        }
+        "dpad" -> {
+            DirectionPad(
+                bleManager = bleManager,
+                shape = PadShape.Cross,
+                buttons = DPAD_BUTTONS,
+                colors = List(4) { AccentCyan },
+                modifier = slotModifier
+            )
+            return
+        }
+        "face" -> {
+            DirectionPad(
+                bleManager = bleManager,
+                shape = PadShape.Diamond,
+                buttons = FACE_BUTTONS,
+                colors = FACE_COLORS,
                 modifier = slotModifier
             )
             return
@@ -510,6 +679,7 @@ fun EditableLayoutView(
                                 val isDragOrig = dragStart == ri to ki
                                 val isTouchpad = key.keyType == "touchpad"
                                 val isStick = key.keyType == "stickL" || key.keyType == "stickR"
+                                val isPad = key.keyType == "dpad" || key.keyType == "face"
                                 val isSpacer = key.keyType == "spacer"
                                 val tColor = key.textColor?.let { Color(it) } ?: TextPrimary
                                 // 48f to match widgetHeight, so a key is the same height
@@ -620,6 +790,10 @@ fun EditableLayoutView(
                                             } else if (isStick) {
                                                 Text("\u26AB ${if (key.keyType == "stickL") "Stick L" else "Stick R"}",
                                                     color = Color(0xFF00E5FF).copy(alpha = 0.6f), fontSize = 9.sp, fontWeight = FontWeight.Medium)
+                                            } else if (isPad) {
+                                                Text(if (key.keyType == "dpad") "✛ D-Pad" else "◆ ABXY",
+                                                    color = Color(0xFF00E5FF).copy(alpha = 0.65f),
+                                                    fontSize = 9.sp, fontWeight = FontWeight.Medium)
                                             } else if (isTouchpad) {
                                                 Text("\uD83D\uDDB1", fontSize = if (keyH > 60.dp) 22.sp else 16.sp)
                                             } else if (eIcon != null && eText.isEmpty()) {
@@ -787,12 +961,10 @@ private fun ToolChip(label: String, color: Color, onClick: () -> Unit) {
 internal fun NeonStick(label: String, onTouch: (x: Float, y: Float, touched: Boolean) -> Unit, modifier: Modifier = Modifier) {
     var position by remember { mutableStateOf(Offset.Zero) }
     var isTouched by remember { mutableStateOf(false) }
-    val radiusPx = 48f
     val CyanNeon = Color(0xFF00E5FF)
 
     Box(
-        modifier = modifier.clip(CircleShape).background(Brush.radialGradient(listOf(Color(0xFF1A2A3A), Color(0xFF101828))))
-            .border(1.dp, CyanNeon.copy(alpha = 0.3f), CircleShape)
+        modifier = modifier
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -800,12 +972,15 @@ internal fun NeonStick(label: String, onTouch: (x: Float, y: Float, touched: Boo
                         val touch = event.changes.firstOrNull() ?: break
                         if (touch.pressed) {
                             touch.consume()
+                            // Fitted to the cell rather than a fixed pixel radius, so the
+                            // throw scales with the key and the two sticks stay matched.
+                            val r = minOf(size.width, size.height) * 0.40f
                             val center = Offset(size.width / 2f, size.height / 2f)
                             val raw = Offset(touch.position.x - center.x, touch.position.y - center.y)
                             val dist = sqrt(raw.x * raw.x + raw.y * raw.y)
-                            val clamped = if (dist > radiusPx) Offset(raw.x / dist * radiusPx, raw.y / dist * radiusPx) else raw
+                            val clamped = if (dist > r) Offset(raw.x / dist * r, raw.y / dist * r) else raw
                             position = clamped; isTouched = true
-                            onTouch(clamped.x / radiusPx, clamped.y / radiusPx, true)
+                            onTouch(if (r > 0f) clamped.x / r else 0f, if (r > 0f) clamped.y / r else 0f, true)
                         } else if (isTouched) {
                             position = Offset.Zero; isTouched = false; onTouch(0f, 0f, false)
                         }
@@ -816,14 +991,18 @@ internal fun NeonStick(label: String, onTouch: (x: Float, y: Float, touched: Boo
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2, size.height / 2)
-            val outerR = radiusPx * 1.05f
-            drawCircle(CyanNeon.copy(alpha = 0.06f), outerR + 10f, center)
-            drawCircle(CyanNeon.copy(alpha = 0.12f), outerR + 5f, center)
-            drawCircle(CyanNeon.copy(alpha = 0.25f), outerR, center, style = Stroke(2.5f))
-            drawCircle(CyanNeon.copy(alpha = 0.08f), radiusPx, center, style = Stroke(4f))
+            // Drawn as a circle fitted to the short side: the cell is often much
+            // wider than tall in landscape, and clipping it to CircleShape turned
+            // the stick into a stretched oval.
+            val r = minOf(size.width, size.height) * 0.40f
+            drawCircle(Color(0xFF101828).copy(alpha = 0.92f), r * 1.14f, center)
+            drawCircle(CyanNeon.copy(alpha = 0.06f), r * 1.14f, center)
+            drawCircle(CyanNeon.copy(alpha = 0.12f), r * 1.07f, center)
+            drawCircle(CyanNeon.copy(alpha = 0.30f), r, center, style = Stroke(2.5f))
+            drawCircle(CyanNeon.copy(alpha = 0.10f), r * 0.70f, center, style = Stroke(4f))
             if (isTouched) {
-                drawCircle(CyanNeon.copy(alpha = 0.25f), 20f, center + position)
-                drawCircle(CyanNeon, 14f, center + position)
+                drawCircle(CyanNeon.copy(alpha = 0.25f), r * 0.42f, center + position)
+                drawCircle(CyanNeon, r * 0.30f, center + position)
             }
         }
         if (!isTouched) {
