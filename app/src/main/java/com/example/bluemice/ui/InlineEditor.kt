@@ -462,12 +462,15 @@ fun EditModeBar(
         Spacer(Modifier.width(4.dp))
         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
             verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A3A2A))
+        // One neutral pill style for the whole overflow group. It previously mixed
+        // green, blue and purple one-offs, which read as three unrelated toolbars
+        // glued together; the two outcomes (Save, Done) are the only coloured ones.
+        Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A2A3A))
             .clickable { onAddKey() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Add, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Add, null, tint = TextPrimary, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(2.dp))
-                Text("Key", color = Color(0xFF4CAF50), fontSize = 11.sp)
+                Text("Key", color = TextPrimary, fontSize = 11.sp)
             }
         }
         Spacer(Modifier.width(4.dp))
@@ -481,42 +484,46 @@ fun EditModeBar(
         }
         if (onImport != null) {
             Spacer(Modifier.width(4.dp))
-            Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A3A4A))
+            Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A2A3A))
                 .clickable { onImport() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Download, null, tint = Color(0xFF64B5F6), modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Download, null, tint = TextSecondary, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(2.dp))
-                    Text("Import", color = Color(0xFF64B5F6), fontSize = 11.sp)
+                    Text("Import", color = TextSecondary, fontSize = 11.sp)
                 }
             }
         }
         if (onExport != null) {
             Spacer(Modifier.width(4.dp))
-            Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A3A4A))
+            Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A2A3A))
                 .clickable { onExport() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Upload, null, tint = Color(0xFF64B5F6), modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Upload, null, tint = TextSecondary, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(2.dp))
-                    Text("Export", color = Color(0xFF64B5F6), fontSize = 11.sp)
+                    Text("Export", color = TextSecondary, fontSize = 11.sp)
                 }
             }
         }
         if (onUndo != null) {
             Spacer(Modifier.width(4.dp))
             Box(Modifier.clip(RoundedCornerShape(6.dp))
-                .background(if (canUndo) Color(0xFF2A2A4A) else Color(0xFF222230))
+                .background(if (canUndo) Color(0xFF2A2A3A) else Color(0xFF222230))
                 .clickable(enabled = canUndo) { onUndo() }.padding(horizontal = 8.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Undo, "Undo", tint = if (canUndo) Color(0xFFB39DDB) else Color(0xFF555566), modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Undo, "Undo",
+                    tint = if (canUndo) TextPrimary else TextSecondary.copy(alpha = 0.35f),
+                    modifier = Modifier.size(14.dp))
             }
         }
         if (onRedo != null) {
             Spacer(Modifier.width(2.dp))
             Box(Modifier.clip(RoundedCornerShape(6.dp))
-                .background(if (canRedo) Color(0xFF2A2A4A) else Color(0xFF222230))
+                .background(if (canRedo) Color(0xFF2A2A3A) else Color(0xFF222230))
                 .clickable(enabled = canRedo) { onRedo() }.padding(horizontal = 8.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Redo, "Redo", tint = if (canRedo) Color(0xFFB39DDB) else Color(0xFF555566), modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Redo, "Redo",
+                    tint = if (canRedo) TextPrimary else TextSecondary.copy(alpha = 0.35f),
+                    modifier = Modifier.size(14.dp))
             }
         }
         }
@@ -544,9 +551,11 @@ fun EditModeBar(
             )
         }
         Spacer(Modifier.width(4.dp))
-        Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF3A1A1A))
+        // "Done" was red, which everyone reads as discard/destroy. It just leaves
+        // edit mode, so it now wears the app's action accent instead.
+        Box(Modifier.clip(RoundedCornerShape(6.dp)).background(AccentCyan.copy(alpha = 0.16f))
             .clickable { onExit() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
-            Text("Done", color = Color(0xFFEF5350), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            Text("Done", color = AccentCyan, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
