@@ -202,14 +202,30 @@ private fun KeyCell(
     val icon = keyIcon(key)
     val text = keyDisplayText(key)
 
+    // A flat fill alone reads as unfinished. Layer a top-lit highlight over the
+    // key's own colour and finish with a brighter hairline, so every key on every
+    // screen picks up the same subtle depth without losing its identity.
+    val keyShape = RoundedCornerShape(Dimens.KeyRadius)
     Box(
         slotModifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(keyShape)
             .background(Color(key.backgroundColor))
-            .border(1.dp, Color(0x24FFFFFF), RoundedCornerShape(8.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.09f), Color.White.copy(alpha = 0.0f))
+                )
+            )
+            .border(1.dp, Color(0x33FFFFFF), keyShape)
             .then(pressModifier),
         contentAlignment = Alignment.Center
     ) {
+        Box(
+            Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color.White.copy(alpha = 0.10f))
+        )
         when {
             key.keyType == "textBlock" -> Text(
                 text,
@@ -221,7 +237,7 @@ private fun KeyCell(
             )
             key.isGamepad -> Text(
                 text.ifEmpty { key.label },
-                color = tColor.copy(alpha = 0.75f),
+                color = tColor.copy(alpha = 0.92f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
@@ -257,9 +273,9 @@ private fun KeyCell(
 private fun WidgetPlaceholder(label: String, hint: String, modifier: Modifier) {
     Box(
         modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFF14141F))
-            .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(8.dp)),
+            .clip(RoundedCornerShape(Dimens.KeyRadius))
+            .background(CardSurface)
+            .border(1.dp, Color(0x40FFFFFF), RoundedCornerShape(Dimens.KeyRadius)),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -281,7 +297,7 @@ fun FallbackScrollWheel(
     Box(
         modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFF1E1E2E))
+            .background(CardSurface)
             .border(1.dp, Color(0x24FFFFFF), RoundedCornerShape(8.dp))
             .pointerInput(bleManager) {
                 var carry = 0f
@@ -397,35 +413,35 @@ fun EditableLayoutView(
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         rows.forEachIndexed { ri, row ->
             Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF1E1E2E)).padding(6.dp)) {
+                .background(CardSurface).padding(6.dp)) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Row ${ri + 1}", color = TextSecondary, fontSize = 10.sp,
                             fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                        Box(Modifier.size(20.dp).clip(CircleShape).background(Color(0xFF2A3A3A))
+                        Box(Modifier.size(24.dp).clip(CircleShape).background(Color(0xFF2A3A3A))
                             .clickable { if (ri > 0) { pushU(); onMoveRowUp(ri) } },
                             contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.ArrowUpward, null, tint = TextSecondary, modifier = Modifier.size(12.dp))
                         }
-                        Box(Modifier.size(20.dp).clip(CircleShape).background(Color(0xFF2A3A3A))
+                        Box(Modifier.size(24.dp).clip(CircleShape).background(Color(0xFF2A3A3A))
                             .clickable { if (ri < rows.size - 1) { pushU(); onMoveRowDown(ri) } },
                             contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.ArrowDownward, null, tint = TextSecondary, modifier = Modifier.size(12.dp))
                         }
                         if (rows.size > 1) {
                             Spacer(Modifier.width(4.dp))
-                            Box(Modifier.size(20.dp).clip(CircleShape).background(Color(0xFF3A1A1A))
+                            Box(Modifier.size(24.dp).clip(CircleShape).background(Color(0xFF3A1A1A))
                                 .clickable { pushU(); onDeleteRow(ri) }, contentAlignment = Alignment.Center) {
                                 Icon(Icons.Default.Close, null, tint = Color(0xFFEF5350), modifier = Modifier.size(12.dp))
                             }
                         }
                         Spacer(Modifier.width(4.dp))
-                        Box(Modifier.size(20.dp).clip(CircleShape).background(Color(0xFF1A2A4A))
+                        Box(Modifier.size(24.dp).clip(CircleShape).background(Color(0xFF1A2A4A))
                             .clickable { pushU(); onEqualizeRow(ri) }, contentAlignment = Alignment.Center) {
                             Text("=1", color = Color(0xFF64B5F6), fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
                         Spacer(Modifier.width(4.dp))
-                        Box(Modifier.size(20.dp).clip(CircleShape).background(Color(0xFF2A1A4A))
+                        Box(Modifier.size(24.dp).clip(CircleShape).background(Color(0xFF2A1A4A))
                             .clickable { pushU(); onAlignRow(ri) }, contentAlignment = Alignment.Center) {
                             Text("Mx", color = Color(0xFFB39DDB), fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
@@ -547,36 +563,36 @@ fun EditableLayoutView(
                                         Spacer(Modifier.height(2.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
                                             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                                            Box(Modifier.size(18.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF2A2A4A))
+                                            Box(Modifier.size(22.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF2A2A4A))
                                                 .clickable { pushU(); onResizeKey(ri, ki, (key.width - 0.5f).coerceAtLeast(0.5f)) }, contentAlignment = Alignment.Center) {
                                                 Text("\u2212", color = Color(0xFF00E5FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
                                             Text("${key.width}x", color = Color(0xFF00E5FF), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp))
-                                            Box(Modifier.size(18.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF2A2A4A))
+                                            Box(Modifier.size(22.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF2A2A4A))
                                                 .clickable { pushU(); onResizeKey(ri, ki, (key.width + 0.5f).coerceAtMost(4f)) }, contentAlignment = Alignment.Center) {
                                                 Text("+", color = Color(0xFF00E5FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
                                             Spacer(Modifier.width(6.dp))
-                                            Box(Modifier.size(18.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF2A2A4A))
+                                            Box(Modifier.size(22.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF2A2A4A))
                                                 .clickable { pushU(); onResizeHeight(ri, ki, (key.height - 0.25f).coerceAtLeast(0.75f)) }, contentAlignment = Alignment.Center) {
                                                 Text("\u2212", color = Color(0xFF66BB6A), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
                                             Text("H${key.height}x", color = Color(0xFF66BB6A), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp))
-                                            Box(Modifier.size(18.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF2A2A4A))
+                                            Box(Modifier.size(22.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF2A2A4A))
                                                 .clickable { pushU(); onResizeHeight(ri, ki, (key.height + 0.25f).coerceAtMost(2.5f)) }, contentAlignment = Alignment.Center) {
                                                 Text("+", color = Color(0xFF66BB6A), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
                                             Spacer(Modifier.width(4.dp))
-                                            Box(Modifier.size(18.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF1A2A3A))
+                                            Box(Modifier.size(22.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF1A2A3A))
                                                 .clickable { if (ri > 0) { pushU(); onMoveUp(ri, ki) } }, contentAlignment = Alignment.Center) {
                                                 Icon(Icons.Default.ArrowUpward, null, tint = TextSecondary, modifier = Modifier.size(10.dp))
                                             }
-                                            Box(Modifier.size(18.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF1A2A3A))
+                                            Box(Modifier.size(22.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF1A2A3A))
                                                 .clickable { if (ri < rows.size - 1) { pushU(); onMoveDown(ri, ki) } }, contentAlignment = Alignment.Center) {
                                                 Icon(Icons.Default.ArrowDownward, null, tint = TextSecondary, modifier = Modifier.size(10.dp))
                                             }
                                             Spacer(Modifier.width(4.dp))
-                                            Box(Modifier.size(18.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF3A1A1A))
+                                            Box(Modifier.size(22.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF3A1A1A))
                                                 .clickable { pushU(); onDeleteKey(ri, ki) }, contentAlignment = Alignment.Center) {
                                                 Icon(Icons.Default.Close, null, tint = Color(0xFFEF5350), modifier = Modifier.size(10.dp))
                                             }
@@ -623,7 +639,7 @@ fun EditableLayoutView(
         selectedKey?.let { (sri, ski) ->
             val sk = rows.getOrNull(sri)?.getOrNull(ski) ?: return@let
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF1E1E2E)).padding(6.dp),
+                .background(CardSurface).padding(6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Key Tools \u00B7 ${sk.label}", color = Color(0xFF64B5F6), fontSize = 10.sp,
