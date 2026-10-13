@@ -109,6 +109,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import com.example.bluemice.model.ConnectionState
 import com.example.bluemice.model.ConnectionStatus
+import com.example.bluemice.ui.AccentCyan
+import com.example.bluemice.ui.Dimens
 import com.example.bluemice.ui.GamepadScreen
 import com.example.bluemice.ui.KeyboardScreen
 import com.example.bluemice.ui.MouseScreen
@@ -116,6 +118,8 @@ import com.example.bluemice.ui.MultimediaScreen
 import com.example.bluemice.ui.NumpadScreen
 import com.example.bluemice.ui.PresenterScreen
 import com.example.bluemice.ui.ScannerScreen
+import com.example.bluemice.ui.ScreenPanel
+import com.example.bluemice.ui.screenBackground
 import com.example.bluemice.ui.theme.*
 import androidx.compose.material3.MaterialTheme
 import kotlinx.coroutines.launch
@@ -1010,7 +1014,9 @@ private fun MainScreen(
                 }
             }
         ) { padding ->
-            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Same backdrop as the six control screens, so the app opens on the
+            // same visual language instead of a plain flat background.
+            Box(modifier = Modifier.fillMaxSize().padding(padding).screenBackground()) {
                 if (!isConnected && !isAdvertising) {
                     ConnectionScreen(
                         pairedDevices = pairedDevices,
@@ -1131,38 +1137,91 @@ private fun AdvertisingScreen(
     onStopAdvertising: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(Icons.Default.Bluetooth, null, modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(12.dp))
-        Text("Advertising as BlueMice", fontSize = 20.sp, fontWeight = FontWeight.Bold,
-            color = Color(0xFFEEEEEE))
-        Spacer(Modifier.height(8.dp))
-        Text("Pair from your PC Bluetooth settings",
-            fontSize = 14.sp, color = Color(0xFF888888), textAlign = TextAlign.Center)
-        Spacer(Modifier.height(24.dp))
-        Button(
-            onClick = onManualConnect,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))
+        // Branded hero instead of a bare 64dp icon floating on the background.
+        Box(
+            Modifier.size(92.dp)
+                .clip(CircleShape)
+                .background(AccentCyan.copy(alpha = 0.10f))
+                .border(1.dp, AccentCyan.copy(alpha = 0.35f), CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.BluetoothConnected, null, Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("Already Connected? Show Controls")
+            Icon(
+                Icons.Default.Bluetooth, null,
+                modifier = Modifier.size(44.dp),
+                tint = AccentCyan
+            )
+        }
+        Spacer(Modifier.height(18.dp))
+        Text("BlueMice", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(SuccessGreen))
+            Spacer(Modifier.width(7.dp))
+            Text("Advertising as BlueMice", fontSize = 13.sp, color = TextSecondary)
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(
+            "Open Bluetooth settings on your PC and pair with\n\"BlueMice\" to start controlling it.",
+            fontSize = 13.sp,
+            color = TextSecondary,
+            textAlign = TextAlign.Center,
+            lineHeight = 19.sp
+        )
+        Spacer(Modifier.height(26.dp))
+
+        ScreenPanel(Modifier.fillMaxWidth()) {
+            Column(
+                Modifier.fillMaxWidth().padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Primary path first - this is the one almost everyone needs.
+                Button(
+                    onClick = onManualConnect,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Dimens.ControlRadius),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AccentCyan,
+                        contentColor = Color(0xFF03222C)
+                    )
+                ) {
+                    Icon(Icons.Default.BluetoothConnected, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Already connected? Show controls",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                OutlinedButton(
+                    onClick = onRestartAdvertising,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Dimens.ControlRadius),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                ) {
+                    Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Restart advertising", fontSize = 13.sp, color = TextSecondary)
+                }
+                OutlinedButton(
+                    onClick = onStopAdvertising,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Dimens.ControlRadius),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                ) {
+                    Text("Stop advertising", fontSize = 13.sp, color = TextSecondary)
+                }
+            }
         }
         Spacer(Modifier.height(12.dp))
-        OutlinedButton(onClick = onRestartAdvertising, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("Restart Advertising (if PC won't reconnect)")
-        }
-        Spacer(Modifier.height(12.dp))
-        OutlinedButton(onClick = onStopAdvertising, modifier = Modifier.fillMaxWidth()) {
-            Text("Stop Advertising")
-        }
+        Text(
+            "PC won't reconnect? Use Restart advertising.",
+            fontSize = 11.sp,
+            color = TextSecondary.copy(alpha = 0.75f)
+        )
     }
 }
 
@@ -1182,21 +1241,40 @@ private fun ConnectionScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(12.dp))
-        Text("BlueMice Controller", style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(4.dp))
-        Text("BLE HID Mouse, Keyboard, Gamepad & Tools",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Same accent-bar lockup as ScreenHeader on the control screens.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.width(3.dp).height(36.dp)
+                    .clip(RoundedCornerShape(2.dp)).background(AccentCyan)
+            )
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text(
+                    "BlueMice Controller",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                Text(
+                    "BLE HID mouse, keyboard, gamepad & tools",
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
+            }
+        }
         Spacer(Modifier.height(16.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = if (isAdvertising) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceVariant
+                                else CardSurface
             ),
-            shape = RoundedCornerShape(12.dp)
+            border = BorderStroke(1.dp, CardBorder),
+            shape = RoundedCornerShape(Dimens.PanelRadius)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
