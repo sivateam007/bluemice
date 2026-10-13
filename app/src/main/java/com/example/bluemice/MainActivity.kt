@@ -50,6 +50,7 @@ import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Laptop
 import androidx.compose.material.icons.filled.Mouse
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PresentToAll
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -139,6 +140,10 @@ class MainActivity : ComponentActivity() {
     private val pairedDevices = mutableStateOf<List<BluetoothDevice>>(emptyList())
     private val showAllDevices = mutableStateOf(false)
     private val isAdvertising = mutableStateOf(false)
+    // Whether the Bluetooth runtime permissions are still missing. The app used to
+    // request them silently at launch and then carry on if they were denied, so
+    // advertising simply never started with no explanation anywhere in the UI.
+    private val bluetoothPermissionsMissing = mutableStateOf(true)
 
     private val connectionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -218,7 +223,10 @@ class MainActivity : ComponentActivity() {
                     onToggleAdvertising = { toggleAdvertising() },
                     onDisconnectFromPc = { disconnectFromPc() },
                     onRestartAdvertising = { restartAdvertising() },
-                    onEnableBluetooth = { requestBluetoothEnable() }
+                    onEnableBluetooth = { requestBluetoothEnable() },
+                    permissionsMissing = bluetoothPermissionsMissing.value,
+                    onRequestPermissions = { checkAndRequestPermissions() },
+                    onOpenAppSettings = { openAppSettings() }
                 )
             }
         }
@@ -311,6 +319,35 @@ class MainActivity : ComponentActivity() {
         connectionManager.onDisconnected()
     }
 
+    /** Bluetooth runtime permissions the app cannot advertise without. */
+    private fun bluetoothPermissionsMissing(): List<String> {
+        val missing = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)
+                missing.add("Bluetooth connect")
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED)
+                missing.add("Bluetooth scan")
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED)
+                missing.add("Bluetooth advertise")
+        } else {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                missing.add("Location (used to find Bluetooth devices)")
+        }
+        return missing
+    }
+
+    private fun refreshBluetoothPermissionState() {
+        bluetoothPermissionsMissing.value = bluetoothPermissionsMissing().isNotEmpty()
+    }
+
+    private fun openAppSettings() {
+        startActivity(
+            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = android.net.Uri.fromParts("package", packageName, null)
+            }
+        )
+    }
+
     private fun checkAndRequestPermissions() {
         val permissions = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -332,8 +369,10 @@ class MainActivity : ComponentActivity() {
             permissions.add(Manifest.permission.CAMERA)
 
         if (permissions.isNotEmpty()) {
+            bluetoothPermissionsMissing.value = bluetoothPermissionsMissing().isNotEmpty()
             ActivityCompat.requestPermissions(this, permissions.toTypedArray(), 100)
         } else {
+            refreshBluetoothPermissionState()
             startHidService()
             refreshPairedDevices()
         }
@@ -342,9 +381,16 @@ class MainActivity : ComponentActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 100) {
+            refreshBluetoothPermissionState()
             startHidService()
             refreshPairedDevices()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Grants made in the system Settings screen are only visible here.
+        refreshBluetoothPermissionState()
     }
 
     private fun requestBluetoothEnable() {
@@ -404,7 +450,10 @@ private fun MainScreen(
     onToggleAdvertising: () -> Unit,
     onRestartAdvertising: () -> Unit,
     onDisconnectFromPc: () -> Unit,
-    onEnableBluetooth: () -> Unit
+    onEnableBluetooth: () -> Unit,
+    permissionsMissing: Boolean,
+    onRequestPermissions: () -> Unit,
+    onOpenAppSettings: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var manualConnected by remember { mutableStateOf(false) }
@@ -1026,7 +1075,10 @@ private fun MainScreen(
                         onPairNewDevice = onPairNewDevice,
                         onToggleShowAll = onToggleShowAll,
                         onToggleAdvertising = onToggleAdvertising,
-                        onManualConnect = { manualConnected = true }
+                        onManualConnect = { manualConnected = true },
+                        permissionsMissing = permissionsMissing,
+                        onRequestPermissions = onRequestPermissions,
+                        onOpenAppSettings = onOpenAppSettings
                     )
                 } else if (!isConnected && isAdvertising) {
                     AdvertisingScreen(
@@ -1234,7 +1286,10 @@ private fun ConnectionScreen(
     onPairNewDevice: () -> Unit,
     onToggleShowAll: () -> Unit,
     onToggleAdvertising: () -> Unit,
-    onManualConnect: () -> Unit
+    onManualConnect: () -> Unit,
+    permissionsMissing: Boolean = false,
+    onRequestPermissions: () -> Unit = {},
+    onOpenAppSettings: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -1266,6 +1321,57 @@ private fun ConnectionScreen(
             }
         }
         Spacer(Modifier.height(16.dp))
+
+        // Denied permissions used to fail silently: the service never started and
+        // nothing in the UI ever said why.
+        if (permissionsMissing) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = GitRed.copy(alpha = 0.12f)),
+                border = BorderStroke(1.dp, GitRed.copy(alpha = 0.55f)),
+                shape = RoundedCornerShape(Dimens.ControlRadius)
+            ) {
+                Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Warning, null, tint = GitRed, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Bluetooth permissions needed",
+                            color = TextPrimary,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "BlueMice advertises itself as a Bluetooth device so your PC can " +
+                            "pair with it. Allow the permissions to continue.",
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = onRequestPermissions,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(Dimens.ControlRadius),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AccentCyan,
+                                contentColor = Color(0xFF03222C)
+                            )
+                        ) { Text("Grant access", fontWeight = FontWeight.SemiBold, fontSize = 13.sp) }
+                        OutlinedButton(
+                            onClick = onOpenAppSettings,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(Dimens.ControlRadius),
+                            border = BorderStroke(1.dp, CardBorder)
+                        ) { Text("App settings", color = TextSecondary, fontSize = 13.sp) }
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -1363,7 +1469,8 @@ private fun ConnectionScreen(
                 textAlign = TextAlign.Center)
         }
 
-        LazyColumn {
+        // Weighted so the permission banner above can't push the list off screen.
+        LazyColumn(Modifier.weight(1f)) {
             items(pairedDevices) { device ->
                 DeviceCard(device = device)
             }
