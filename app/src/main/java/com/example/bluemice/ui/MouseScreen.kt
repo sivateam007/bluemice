@@ -586,7 +586,9 @@ fun MouseScreen(
             }
 
             // Custom keys section (replaces hardcoded elements during edit)
-            if (isEditing) {
+            // Framed surface, weighted so the touchpad row can flex to fill it.
+            ScreenPanel(Modifier.weight(1f)) {
+                if (isEditing) {
                 Spacer(Modifier.height(6.dp))
                 EditableLayoutView(
                     rows = editRows,
@@ -630,6 +632,7 @@ fun MouseScreen(
                     )
                     Spacer(Modifier.height(6.dp))
                 }
+            }
             }
 
         }

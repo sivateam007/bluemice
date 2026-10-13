@@ -280,15 +280,11 @@ fun GamepadScreen(
 
             // One framed panel holds the pad in both orientations - it keeps the grid
             // aligned and gives portrait and landscape the same surface to sit in.
-            Box(
-                Modifier.fillMaxWidth().weight(1f)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(CardSurface)
-                    .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
-                    // One scroll container for both modes: a default pad with 180dp
-                    // sticks plus five rows overflows a landscape viewport.
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 6.dp, vertical = 6.dp),
+            // One scrollable framed panel for both modes: a default pad with 180dp
+            // sticks plus five rows overflows a landscape viewport.
+            ScreenPanel(
+                Modifier.weight(1f),
+                scroll = true,
                 contentAlignment = if (isLandscape) Alignment.Center else Alignment.TopCenter
             ) {
                 if (isEditing) {

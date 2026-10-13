@@ -155,7 +155,9 @@ fun NumpadScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutManag
                 }
             }
 
-            if (isEditing) {
+            // Framed surface - the same one the gamepad screen uses.
+            ScreenPanel(Modifier.padding(bottom = 6.dp)) {
+                if (isEditing) {
                 EditableLayoutView(
                     rows = editRows,
                     onEditKey = { ri, ki -> editRowIdx = ri; editKeyIdx = ki; editingKey = editRows[ri][ki]; showEditKeySheet = true },
@@ -192,6 +194,7 @@ fun NumpadScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutManag
                         onKeySent = { onNumpadKeySent(it) }
                     )
                 }
+            }
             }
 
             // Display - mirrors whatever the layout keys just sent.

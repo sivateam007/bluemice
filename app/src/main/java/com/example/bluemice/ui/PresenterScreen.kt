@@ -175,7 +175,9 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
                 }
             }
 
-            if (isEditing) {
+            // Framed surface - the same one the gamepad screen uses.
+            ScreenPanel(Modifier.padding(bottom = 8.dp)) {
+                if (isEditing) {
                 EditableLayoutView(
                     rows = editRows,
                     onEditKey = { ri, ki -> editRowIdx = ri; editKeyIdx = ki; editingKey = editRows[ri][ki]; showEditKeySheet = true },
@@ -210,6 +212,7 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
                 } else {
                     CustomLayoutView(currentLayout!!, bleManager, modifier = Modifier.padding(bottom = 12.dp))
                 }
+            }
             }
             Spacer(Modifier.height(16.dp))
 

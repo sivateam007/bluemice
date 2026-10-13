@@ -79,11 +79,14 @@ fun ScreenPanel(
     content: @Composable BoxScope.() -> Unit
 ) {
     val shape = RoundedCornerShape(Dimens.PanelRadius)
+    // Padding sits *outside* the scroll container so the inset stays put while
+    // content moves under it; putting it inside would make the top gutter scroll away.
     var inner: Modifier = Modifier
         .fillMaxWidth()
         .clip(shape)
         .background(CardSurface)
         .border(1.dp, CardBorder, shape)
+        .padding(horizontal = 6.dp, vertical = 6.dp)
     if (scroll) inner = inner.verticalScroll(rememberScrollState())
     Box(
         modifier = modifier.then(inner),

@@ -216,7 +216,9 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
                 }
             }
 
-            if (isEditing) {
+            // Framed surface - the same one the gamepad screen uses.
+            ScreenPanel(Modifier.padding(bottom = 8.dp)) {
+                if (isEditing) {
                 EditableLayoutView(
                     rows = editRows,
                     onEditKey = { ri, ki -> editRowIdx = ri; editKeyIdx = ki; editingKey = editRows[ri][ki]; showEditKeySheet = true },
@@ -250,6 +252,7 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
                     CustomLayoutView(currentLayout!!, bleManager, modifier = Modifier.padding(bottom = 6.dp),
                         hapticsEnabled = settingsManager?.hapticsEnabled ?: false)
                 }
+            }
             }
 
             if (!isEditing) {

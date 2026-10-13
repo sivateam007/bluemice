@@ -151,7 +151,9 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
                 }
             }
 
-            if (isEditing) {
+            // Framed surface - the same one the gamepad screen uses.
+            ScreenPanel(Modifier.padding(bottom = 8.dp)) {
+                if (isEditing) {
                 EditableLayoutView(
                     rows = editRows,
                     onEditKey = { ri, ki -> editRowIdx = ri; editKeyIdx = ki; editingKey = editRows[ri][ki]; showEditKeySheet = true },
@@ -184,6 +186,7 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
                 } else {
                     CustomLayoutView(currentLayout!!, bleManager)
                 }
+            }
             }
         }
 
