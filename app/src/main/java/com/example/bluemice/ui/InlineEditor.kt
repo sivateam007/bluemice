@@ -1066,7 +1066,7 @@ fun EditKeySheet(
 
         OutlinedTextField(value = editLabel, onValueChange = { editLabel = it.take(16) },
             label = { Text("Label") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-            textStyle = TextStyle(color = Color(0xFFEEEEEE), fontSize = 14.sp),
+            textStyle = TextStyle(color = TextPrimary, fontSize = 14.sp),
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = Color(0xFF666666), cursorColor = MaterialTheme.colorScheme.primary,
                 focusedLabelColor = MaterialTheme.colorScheme.primary, unfocusedLabelColor = TextSecondary))
@@ -1170,7 +1170,7 @@ fun EditKeySheet(
                 val v = it.removePrefix("0x").removePrefix("0X").toIntOrNull(16)
                 if (v != null && v in 0..255) editKeyCode = v.toByte()
             }, label = { Text("Hex (e.g. 0x2C)") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                textStyle = TextStyle(color = Color(0xFFEEEEEE), fontSize = 13.sp),
+                textStyle = TextStyle(color = TextPrimary, fontSize = 13.sp),
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = Color(0xFF666666), cursorColor = MaterialTheme.colorScheme.primary,
                     focusedLabelColor = MaterialTheme.colorScheme.primary, unfocusedLabelColor = TextSecondary))
@@ -1227,7 +1227,7 @@ fun EditKeySheet(
     fun TextContent() {
         OutlinedTextField(value = editTextBlock, onValueChange = { editTextBlock = it },
             label = { Text("Text to type") }, modifier = Modifier.fillMaxWidth().height(96.dp),
-            textStyle = TextStyle(color = Color(0xFFEEEEEE), fontSize = 13.sp),
+            textStyle = TextStyle(color = TextPrimary, fontSize = 13.sp),
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = Color(0xFF666666), cursorColor = MaterialTheme.colorScheme.primary,
                 focusedLabelColor = MaterialTheme.colorScheme.primary, unfocusedLabelColor = TextSecondary))
@@ -1298,7 +1298,7 @@ fun EditKeySheet(
 
             TabRow(
                 selectedTabIndex = selectedTab,
-                containerColor = Color(0xFF1E1E2E),
+                containerColor = CardSurface,
                 contentColor = MaterialTheme.colorScheme.primary
             ) {
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
@@ -1540,7 +1540,7 @@ private fun StepEditorDialog(
                     "keystroke" -> {
                         OutlinedTextField(value = keyCode, onValueChange = onKeyCodeChange,
                             label = { Text("HID Key Code (0-255)") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                            textStyle = TextStyle(color = Color(0xFFEEEEEE), fontSize = 13.sp),
+                            textStyle = TextStyle(color = TextPrimary, fontSize = 13.sp),
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = Color(0xFF666666), cursorColor = MaterialTheme.colorScheme.primary,
                                 focusedLabelColor = MaterialTheme.colorScheme.primary, unfocusedLabelColor = TextSecondary))
@@ -1549,7 +1549,7 @@ private fun StepEditorDialog(
                     "consumer" -> {
                         OutlinedTextField(value = consumerCode, onValueChange = onConsumerCodeChange,
                             label = { Text("Consumer Code (hex)") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                            textStyle = TextStyle(color = Color(0xFFEEEEEE), fontSize = 13.sp),
+                            textStyle = TextStyle(color = TextPrimary, fontSize = 13.sp),
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = Color(0xFF666666), cursorColor = MaterialTheme.colorScheme.primary,
                                 focusedLabelColor = MaterialTheme.colorScheme.primary, unfocusedLabelColor = TextSecondary))
@@ -1579,7 +1579,7 @@ private fun StepEditorDialog(
                     "text" -> {
                         OutlinedTextField(value = text, onValueChange = onTextChange,
                             label = { Text("Text to send") }, singleLine = false, modifier = Modifier.fillMaxWidth().height(80.dp),
-                            textStyle = TextStyle(color = Color(0xFFEEEEEE), fontSize = 13.sp),
+                            textStyle = TextStyle(color = TextPrimary, fontSize = 13.sp),
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = Color(0xFF666666), cursorColor = MaterialTheme.colorScheme.primary,
                                 focusedLabelColor = MaterialTheme.colorScheme.primary, unfocusedLabelColor = TextSecondary))
@@ -1587,7 +1587,7 @@ private fun StepEditorDialog(
                     "delay" -> {
                         OutlinedTextField(value = delay, onValueChange = onDelayChange,
                             label = { Text("Delay in milliseconds") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                            textStyle = TextStyle(color = Color(0xFFEEEEEE), fontSize = 13.sp),
+                            textStyle = TextStyle(color = TextPrimary, fontSize = 13.sp),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                             keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -1617,7 +1617,7 @@ private fun TextBlockDialog(
                 Spacer(Modifier.height(4.dp))
                 OutlinedTextField(value = text, onValueChange = onTextChange,
                     modifier = Modifier.fillMaxWidth().height(120.dp),
-                    textStyle = TextStyle(color = Color(0xFFEEEEEE), fontSize = 14.sp),
+                    textStyle = TextStyle(color = TextPrimary, fontSize = 14.sp),
                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = Color(0xFF666666), cursorColor = MaterialTheme.colorScheme.primary,
                         focusedLabelColor = MaterialTheme.colorScheme.primary, unfocusedLabelColor = TextSecondary))

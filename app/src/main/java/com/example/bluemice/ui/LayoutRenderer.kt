@@ -457,21 +457,21 @@ fun EditableLayoutView(
                             }
                         }
                         Spacer(Modifier.width(4.dp))
-                        Box(Modifier.size(24.dp).clip(CircleShape).background(Color(0xFF1A2A4A))
+                        Box(Modifier.size(24.dp).clip(CircleShape).background(AccentCyan.copy(alpha = 0.16f))
                             .clickable { pushU(); onEqualizeRow(ri) }, contentAlignment = Alignment.Center) {
-                            Text("=1", color = Color(0xFF64B5F6), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("=1", color = AccentCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
                         Spacer(Modifier.width(4.dp))
-                        Box(Modifier.size(24.dp).clip(CircleShape).background(Color(0xFF2A1A4A))
+                        Box(Modifier.size(24.dp).clip(CircleShape).background(AccentCyan.copy(alpha = 0.16f))
                             .clickable { pushU(); onAlignRow(ri) }, contentAlignment = Alignment.Center) {
-                            Text("Mx", color = Color(0xFFB39DDB), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("Mx", color = AccentCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     Spacer(Modifier.height(4.dp))
                     if (row.isEmpty()) {
                         Box(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF16162A))
-                            .border(1.dp, Color(0xFF00E5FF).copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                            .background(CardSurface)
+                            .border(1.dp, AccentCyan.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
                             .clickable { onAddToRow(ri) }, contentAlignment = Alignment.Center) {
                             Text("\uFF0B  Add keys to this row", color = Color(0xFF00E5FF).copy(alpha = 0.7f), fontSize = 11.sp)
                         }

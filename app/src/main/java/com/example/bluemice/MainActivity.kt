@@ -599,21 +599,21 @@ private fun MainScreen(
                         Column {
                             Text("BlueMice", fontSize = 26.sp, fontWeight = FontWeight.Bold,
                                 color = Color.White)
-                            Text("BLE HID Controller", fontSize = 11.sp, color = Color(0xFFCCCCCC))
+                            Text("BLE HID Controller", fontSize = 11.sp, color = TextPrimary.copy(alpha = 0.85f))
                             Spacer(Modifier.height(10.dp))
                             if (isConnected) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(SuccessGreen))
                                     Spacer(Modifier.width(8.dp))
                                     Text("Connected to $connectedName", fontSize = 12.sp,
-                                        color = Color(0xFFCCCCCC))
+                                        color = TextPrimary.copy(alpha = 0.85f))
                                 }
                             } else {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(GitRed))
                                     Spacer(Modifier.width(8.dp))
                                     Text("Disconnected", fontSize = 12.sp,
-                                        color = Color(0xFF999999))
+                                        color = TextPrimary.copy(alpha = 0.65f))
                                 }
                             }
                         }
