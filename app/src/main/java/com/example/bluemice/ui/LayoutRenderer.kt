@@ -825,7 +825,7 @@ fun EditableLayoutView(
                                                 .clickable { pushU(); onResizeKey(ri, ki, (key.width - 0.5f).coerceAtLeast(0.5f)) }, contentAlignment = Alignment.Center) {
                                                 Text("\u2212", color = Color(0xFF00E5FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
-                                            Text("${key.width}x", color = Color(0xFF00E5FF), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp))
+                                            Text("${key.width}x", color = if (key.width < 1f) Color(0xFFE0A030) else Color(0xFF00E5FF), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp))
                                             Box(Modifier.size(22.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF2A2A4A))
                                                 .clickable { pushU(); onResizeKey(ri, ki, (key.width + 0.5f).coerceAtMost(4f)) }, contentAlignment = Alignment.Center) {
                                                 Text("+", color = Color(0xFF00E5FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -835,7 +835,7 @@ fun EditableLayoutView(
                                                 .clickable { pushU(); onResizeHeight(ri, ki, (key.height - 0.25f).coerceAtLeast(0.75f)) }, contentAlignment = Alignment.Center) {
                                                 Text("\u2212", color = Color(0xFF66BB6A), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
-                                            Text("H${key.height}x", color = Color(0xFF66BB6A), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp))
+                                            Text("H${key.height}x", color = if (key.height < 1f) Color(0xFFE0A030) else Color(0xFF66BB6A), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp))
                                             Box(Modifier.size(22.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF2A2A4A))
                                                 .clickable { pushU(); onResizeHeight(ri, ki, (key.height + 0.25f).coerceAtMost(2.5f)) }, contentAlignment = Alignment.Center) {
                                                 Text("+", color = Color(0xFF66BB6A), fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -877,6 +877,48 @@ fun EditableLayoutView(
                                                 )
                                             }
                                     )
+                                    // Edge handles, so width and height can be set one at a
+                                    // time - the corner handle moves both, which makes a
+                                    // deliberate one-axis resize a fight. They carry drag
+                                    // handlers only, so a tap still falls through to the
+                                    // move and delete buttons underneath.
+                                    Box(
+                                        Modifier.align(Alignment.CenterEnd).width(10.dp).fillMaxHeight()
+                                            .background(Color(0x3300E5FF))
+                                            .pointerInput(ri to ki) {
+                                                var startWidth = 0f
+                                                detectDragGestures(
+                                                    onDragStart = { pushU(); startWidth = currentKey.width },
+                                                    onDrag = { change, dragAmount ->
+                                                        change.consume()
+                                                        val snapW = Math.round((startWidth + dragAmount.x / 40f) * 2f) / 2f
+                                                        onResizeKey(ri, ki, snapW.coerceIn(0.5f, 4f))
+                                                    }
+                                                )
+                                            }
+                                    )
+                                    Box(
+                                        Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(10.dp)
+                                            .background(Color(0x3366BB6A))
+                                            .pointerInput(ri to ki) {
+                                                var startHeight = 0f
+                                                detectDragGestures(
+                                                    onDragStart = { pushU(); startHeight = currentKey.height },
+                                                    onDrag = { change, dragAmount ->
+                                                        change.consume()
+                                                        val snapH = Math.round((startHeight + dragAmount.y / 40f) * 4f) / 4f
+                                                        onResizeHeight(ri, ki, snapH.coerceIn(0.75f, 2.5f))
+                                                    }
+                                                )
+                                            }
+                                    )
+                                    // Insertion marker. Dragging reorders by swapping, so the
+                                    // key already sits where it will land - the bar on its
+                                    // leading edge is what says so.
+                                    if (isDragOrig) {
+                                        Box(Modifier.align(Alignment.CenterStart).width(3.dp).fillMaxHeight()
+                                            .background(Color(0xFF00E5FF)))
+                                    }
                                 }
                             }
                             // Tappable + slot: append a new key straight to this row.

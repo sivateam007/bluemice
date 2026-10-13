@@ -71,6 +71,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -95,6 +97,7 @@ import com.example.bluemice.model.LayoutKey
 import com.example.bluemice.model.MacroStep
 import com.example.bluemice.ui.theme.*
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 private val KC = HidReportBuilder.KeyCodes
 
@@ -1161,26 +1164,56 @@ fun EditKeySheet(
             Text("TextBlock: ${editTextBlock.take(30)}", color = TextSecondary, fontSize = 11.sp)
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Width", color = TextSecondary, fontSize = 11.sp, modifier = Modifier.width(40.dp))
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                listOf(0.5f, 0.8f, 1f, 1.5f, 2f, 3f).forEach { w ->
-                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(if (editWidth == w) MaterialTheme.colorScheme.primary else Color(0xFF2A2A3A))
-                        .clickable { editWidth = w }.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                        Text("${w}x", color = if (editWidth == w) Color.White else TextSecondary, fontSize = 10.sp)
-                    }
+        // Size: presets for the common cases, a slider for anything between them,
+        // and a live readout so "will this still fit a thumb?" is answerable
+        // before you apply rather than after you have gone back to the pad.
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            listOf(0.5f, 0.8f, 1f, 1.5f, 2f, 3f).forEach { w ->
+                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(if (editWidth == w) MaterialTheme.colorScheme.primary else Color(0xFF2A2A3A))
+                    .clickable { editWidth = w }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    Text("${w}x", color = if (editWidth == w) Color.White else TextSecondary, fontSize = 10.sp)
                 }
             }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Ht", color = TextSecondary, fontSize = 11.sp, modifier = Modifier.width(40.dp))
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                listOf(0.8f, 1f, 1.5f, 2f).forEach { h ->
-                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(if (editHeight == h) MaterialTheme.colorScheme.primary else Color(0xFF2A2A3A))
-                        .clickable { editHeight = h }.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                        Text("${h}x", color = if (editHeight == h) Color.White else TextSecondary, fontSize = 10.sp)
-                    }
+            Text("Width", color = TextSecondary, fontSize = 11.sp, modifier = Modifier.width(44.dp))
+            Slider(
+                value = editWidth, onValueChange = { editWidth = it },
+                valueRange = 0.5f..4f, steps = 13,
+                colors = SliderDefaults.colors(thumbColor = Color.White,
+                    activeTrackColor = MaterialTheme.colorScheme.primary, inactiveTrackColor = Color(0xFF3A3A3A))
+            )
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Height", color = TextSecondary, fontSize = 11.sp, modifier = Modifier.width(44.dp))
+            Slider(
+                value = editHeight, onValueChange = { editHeight = it },
+                valueRange = 0.75f..2.5f, steps = 6,
+                colors = SliderDefaults.colors(thumbColor = Color.White,
+                    activeTrackColor = Color(0xFF66BB6A), inactiveTrackColor = Color(0xFF3A3A3A))
+            )
+        }
+
+        run {
+            val dpTall = (48f * editHeight).roundToInt()
+            // A key that resolves to less than the 48dp touch target is a mis-tap
+            // waiting to happen, so flag it while you are still deciding.
+            val tooSmall = dpTall < 48 || editWidth < 1f
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                    .background(if (tooSmall) Color(0xFF33261A) else Color(0xFF1E2126))
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "${editWidth}x wide  ·  ${dpTall} dp tall",
+                    color = if (tooSmall) Color(0xFFE0A030) else TextPrimary,
+                    fontSize = 10.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f)
+                )
+                if (tooSmall) {
+                    Text("⚠ under 48 dp", color = Color(0xFFE0A030), fontSize = 10.sp)
                 }
             }
         }
