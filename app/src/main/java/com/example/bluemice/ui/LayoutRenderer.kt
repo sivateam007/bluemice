@@ -20,9 +20,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -121,7 +124,10 @@ private fun widgetHeight(key: LayoutKey): Dp {
         "stickL", "stickR" -> 90f
         "scroll" -> 46f
         "typeBar", "languageBoard" -> 44f
-        else -> 40f
+        // 48f, not 40f: Material's minimum touch target is 48x48dp, and the old
+        // 40f base put every default key below spec - which is why the pads read
+        // as cramped. Widgets keep their own tuned bases above.
+        else -> 48f
     }
     return (base * key.height.coerceIn(0.75f, 2.5f)).dp
 }
@@ -142,6 +148,14 @@ private fun KeyCell(
     val slotModifier = baseModifier.then(
         if (fillHeight) Modifier.fillMaxHeight() else Modifier.height(widgetHeight(key))
     )
+
+    // A spacer is layout geometry, not a control: it holds a gap open so keys on
+    // different rows can line up (D-pad cross, ABXY diamond, shoulder clusters).
+    // It paints nothing and dispatches nothing - the empty space is the feature.
+    if (key.keyType == "spacer") {
+        Box(slotModifier)
+        return
+    }
 
     val slot = widgetSlots[key.keyType]
     if (slot != null) {
@@ -496,18 +510,46 @@ fun EditableLayoutView(
                                 val isDragOrig = dragStart == ri to ki
                                 val isTouchpad = key.keyType == "touchpad"
                                 val isStick = key.keyType == "stickL" || key.keyType == "stickR"
+                                val isSpacer = key.keyType == "spacer"
                                 val tColor = key.textColor?.let { Color(it) } ?: TextPrimary
-                                val keyH = (44f * key.height.coerceIn(0.7f, 2.5f)).dp
+                                // 48f to match widgetHeight, so a key is the same height
+                                // in the editor as it will be on the live pad.
+                                val keyH = (48f * key.height.coerceIn(0.7f, 2.5f)).dp
                                 val currentKey by rememberUpdatedState(key)
                                 val isSelected = selectedKey == ri to ki
                                 Box(modifier = Modifier
                                     .weight(key.width.coerceAtLeast(0.5f))
                                     .height(keyH)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isDragOrig) Color(0xFF00E5FF).copy(alpha = 0.15f) else bgColor)
+                                    .background(
+                                        when {
+                                            isDragOrig -> Color(0xFF00E5FF).copy(alpha = 0.15f)
+                                            isSpacer -> Color.Transparent
+                                            else -> bgColor
+                                        }
+                                    )
+                                    .then(
+                                        // A spacer must not look like a key, but it still has
+                                        // to be findable and tappable to move or delete it.
+                                        if (isSpacer) Modifier.drawBehind {
+                                            val sw = 1.dp.toPx()
+                                            drawRoundRect(
+                                                color = if (isSelected) AccentCyan
+                                                        else Color(0x38FFFFFF),
+                                                style = Stroke(
+                                                    width = sw,
+                                                    pathEffect = PathEffect.dashPathEffect(
+                                                        floatArrayOf(9f, 7f), 0f
+                                                    )
+                                                ),
+                                                cornerRadius = CornerRadius(8.dp.toPx())
+                                            )
+                                        } else Modifier
+                                    )
                                     .border(1.dp, when {
                                         isDragOrig -> Color(0xFF00E5FF).copy(alpha = 0.5f)
                                         isSelected -> Color(0xFF00E5FF)
+                                        isSpacer -> Color.Transparent
                                         else -> Color(0x24FFFFFF)
                                     }, RoundedCornerShape(8.dp))
                                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
@@ -572,7 +614,10 @@ fun EditableLayoutView(
                                             }
                                             val eIcon = keyIcon(key)
                                             val eText = keyDisplayText(key)
-                                            if (isStick) {
+                                            if (isSpacer) {
+                                                Text("GAP", color = TextSecondary.copy(alpha = 0.75f),
+                                                    fontSize = 8.sp, fontWeight = FontWeight.SemiBold)
+                                            } else if (isStick) {
                                                 Text("\u26AB ${if (key.keyType == "stickL") "Stick L" else "Stick R"}",
                                                     color = Color(0xFF00E5FF).copy(alpha = 0.6f), fontSize = 9.sp, fontWeight = FontWeight.Medium)
                                             } else if (isTouchpad) {

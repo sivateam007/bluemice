@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.SpaceBar
 import androidx.compose.material.icons.filled.TextSnippet
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Upload
@@ -648,6 +649,10 @@ fun AddKeySheet(
                     CategoryCard(Icons.Default.Widgets, "Template", Periwinkle) {
                         showTemplatePicker = true
                     }
+                    CategoryCard(Icons.Default.SpaceBar, "Spacer", TextSecondary) {
+                        onAddSpecial("spacer", "Spacer", 0xFF3A3A3A)
+                        onDismiss()
+                    }
                 }
             } else {
                 // Category cards in 2 rows
@@ -697,6 +702,10 @@ fun AddKeySheet(
                     }
                     CategoryCard(Icons.Default.Widgets, "Template", Periwinkle) {
                         showTemplatePicker = true
+                    }
+                    CategoryCard(Icons.Default.SpaceBar, "Spacer", TextSecondary) {
+                        onAddSpecial("spacer", "Spacer", 0xFF3A3A3A)
+                        onDismiss()
                     }
                 }
             }
