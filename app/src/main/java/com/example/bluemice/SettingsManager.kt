@@ -61,15 +61,6 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean("tap_to_click", true)
         set(v) = prefs.edit().putBoolean("tap_to_click", v).apply()
 
-    var showMouseButtonsAbove: Boolean
-        get() = prefs.getBoolean("show_mouse_buttons_above", false)
-        set(v) = prefs.edit().putBoolean("show_mouse_buttons_above", v).apply()
-
-    var visibleMouseButtons: List<String>
-        get() = (prefs.getString("visible_mouse_buttons", "left,right") ?: "left,right")
-            .split(",").filter { it.isNotEmpty() }
-        set(v) = prefs.edit().putString("visible_mouse_buttons", v.joinToString(",")).apply()
-
     var scrollBarLeft: Boolean
         get() = prefs.getBoolean("scroll_bar_left", false)
         set(v) = prefs.edit().putBoolean("scroll_bar_left", v).apply()

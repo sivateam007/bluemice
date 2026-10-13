@@ -125,8 +125,6 @@ fun MouseScreen(
     // M3 mouse settings
     var tapToClick by remember { mutableStateOf(settingsManager?.tapToClick ?: true) }
     var invertScroll by remember { mutableStateOf(settingsManager?.invertScroll ?: false) }
-    var showMouseButtonsAbove by remember { mutableStateOf(settingsManager?.showMouseButtonsAbove ?: false) }
-    var visibleButtons by remember { mutableStateOf(settingsManager?.visibleMouseButtons ?: listOf("left", "right")) }
     var showScrollBar by remember { mutableStateOf(settingsManager?.showScrollBar ?: true) }
     var scrollBarLeft by remember { mutableStateOf(settingsManager?.scrollBarLeft ?: false) }
     var mouseJiggleMode by remember { mutableStateOf(settingsManager?.mouseJiggleMode ?: "disabled") }
@@ -793,35 +791,9 @@ fun MouseScreen(
                     Switch(checked = tapToClick, onCheckedChange = { tapToClick = it; settingsManager?.tapToClick = it })
                 }
 
-                Column {
-                    Text("Mouse buttons", color = TextSecondary, fontSize = 11.sp)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        listOf("left", "middle", "right").forEach { b ->
-                            val active = visibleButtons.contains(b)
-                            Box(Modifier.clip(RoundedCornerShape(12.dp)).background(if (active) MaterialTheme.colorScheme.primary else Color(0xFF2A2A3A))
-                                .clickable {
-                                    visibleButtons = if (active) visibleButtons.filter { it != b } else visibleButtons + b
-                                    settingsManager?.visibleMouseButtons = visibleButtons
-                                }.padding(horizontal = 12.dp, vertical = 6.dp)) {
-                                Text(b.replaceFirstChar { it.uppercase() }, color = if (active) Color.White else TextSecondary, fontSize = 12.sp)
-                            }
-                        }
-                    }
-                }
-
-                Column {
-                    Text("Show buttons", color = TextSecondary, fontSize = 11.sp)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        listOf("Above" to true, "Below" to false).forEach { (label, isAbove) ->
-                            val active = showMouseButtonsAbove == isAbove
-                            Box(Modifier.clip(RoundedCornerShape(12.dp)).background(if (active) MaterialTheme.colorScheme.primary else Color(0xFF2A2A3A))
-                                .clickable { showMouseButtonsAbove = isAbove; settingsManager?.showMouseButtonsAbove = isAbove }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)) {
-                                Text(label, color = if (active) Color.White else TextSecondary, fontSize = 12.sp)
-                            }
-                        }
-                    }
-                }
+                // "Mouse buttons" visibility/position used to live here. It drove
+                // nothing once buttons became ordinary editable layout keys, so the
+                // dead toggles were removed rather than left as no-op switches.
 
                 Column {
                     Text("Scroll bar", color = TextSecondary, fontSize = 11.sp)
