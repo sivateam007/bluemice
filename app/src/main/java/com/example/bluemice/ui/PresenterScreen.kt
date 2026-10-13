@@ -5,6 +5,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -194,7 +196,9 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
                     onDuplicateKey = { ri, ki -> val newRows = editRows.toMutableList(); val nr = newRows[ri].toMutableList(); nr.add(ki + 1, nr[ki]); newRows[ri] = nr; editRows = newRows },
                     onAddToRow = { ri -> addTargetRow = ri; showAddKeySheet = true },
                     history = layoutHistory,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 8.dp)
                 )
             } else if (!isEditing) {
                 val layoutEmpty = currentLayout == null || currentLayout.rows.none { it.keys.isNotEmpty() }

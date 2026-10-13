@@ -288,6 +288,9 @@ fun GamepadScreen(
                     .clip(RoundedCornerShape(14.dp))
                     .background(CardSurface)
                     .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
+                    // One scroll container for both modes: a default pad with 180dp
+                    // sticks plus five rows overflows a landscape viewport.
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 6.dp, vertical = 6.dp),
                 contentAlignment = if (isLandscape) Alignment.Center else Alignment.TopCenter
             ) {
@@ -314,7 +317,7 @@ fun GamepadScreen(
                     },
                     onAddToRow = { ri -> addTargetRow = ri; showAddKeySheet = true },
                     history = layoutHistory,
-                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                    modifier = Modifier.fillMaxWidth()
                 )
                 } else {
                 val layoutEmpty = currentLayout == null || currentLayout.rows.none { it.keys.isNotEmpty() }
