@@ -505,7 +505,11 @@ fun MouseScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(
+                    start = 16.dp, end = 16.dp, top = 16.dp,
+                    // Clear the floating EditModeBar so the last row stays tappable.
+                    bottom = if (isEditing) 64.dp else 16.dp
+                )
         ) {
             // Header row with action buttons
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

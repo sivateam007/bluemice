@@ -142,7 +142,11 @@ fun NumpadScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutManag
     }
 
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().background(bg).padding(8.dp).verticalScroll(rememberScrollState()),
+        Column(Modifier.fillMaxSize().background(bg)
+            .padding(start = 8.dp, end = 8.dp, top = 8.dp,
+                // Clear the floating EditModeBar so the last row stays tappable.
+                bottom = if (isEditing) 64.dp else 8.dp)
+            .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(4.dp)) {
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

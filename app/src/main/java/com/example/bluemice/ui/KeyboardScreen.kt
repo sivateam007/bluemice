@@ -160,7 +160,12 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
     Box(Modifier.fillMaxSize()) {
         Column(
             Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
-                .verticalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 6.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = 6.dp, end = 6.dp, top = 6.dp,
+                    // Clear the floating EditModeBar so the last row stays tappable.
+                    bottom = if (isEditing) 64.dp else 6.dp
+                ),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

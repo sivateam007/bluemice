@@ -138,7 +138,11 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
     }
 
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(12.dp).verticalScroll(rememberScrollState()),
+        Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+            .padding(start = 12.dp, end = 12.dp, top = 12.dp,
+                // Clear the floating EditModeBar so the last row stays tappable.
+                bottom = if (isEditing) 64.dp else 12.dp)
+            .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
