@@ -39,6 +39,7 @@ import com.example.bluemice.HidReportBuilder
 import com.example.bluemice.model.LayoutDefinition
 import com.example.bluemice.model.LayoutKey
 import com.example.bluemice.ui.theme.CardSurface
+import com.example.bluemice.ui.theme.SuccessGreen
 import com.example.bluemice.ui.theme.TextPrimary
 import com.example.bluemice.ui.theme.TextSecondary
 import java.text.SimpleDateFormat
@@ -355,42 +356,54 @@ fun EmptyLayoutState(
     onRestoreDefault: () -> Unit,
     onAddKeys: () -> Unit
 ) {
-    Box(modifier.fillMaxWidth().padding(vertical = 20.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(message, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            // Icon + two buttons rather than two lines of naked text, so the empty
+            // state reads as a deliberate screen instead of a missing layout.
+            Box(
+                Modifier.size(52.dp)
+                    .clip(CircleShape)
+                    .background(AccentCyan.copy(alpha = 0.12f))
+                    .border(1.dp, AccentCyan.copy(alpha = 0.35f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Widgets, null, tint = AccentCyan, modifier = Modifier.size(26.dp))
+            }
+            Text(message, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Text(
                 "You can add keys with Edit,\nor put the original layout back.",
-                color = TextSecondary.copy(alpha = 0.8f),
+                color = TextSecondary.copy(alpha = 0.85f),
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
                     Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(CardSurface)
+                        .clip(RoundedCornerShape(Dimens.ControlRadius))
+                        .background(AccentCyan)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { onAddKeys() }
                         .padding(horizontal = 16.dp, vertical = 9.dp)
                 ) {
-                    Text("+ Add keys", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("+ Add keys", color = Color(0xFF03222C), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
                 Box(
                     Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF1A3A2A))
+                        .clip(RoundedCornerShape(Dimens.ControlRadius))
+                        .background(SuccessGreen.copy(alpha = 0.16f))
+                        .border(1.dp, SuccessGreen.copy(alpha = 0.45f), RoundedCornerShape(Dimens.ControlRadius))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { onRestoreDefault() }
                         .padding(horizontal = 16.dp, vertical = 9.dp)
                 ) {
-                    Text("Restore default", color = Color(0xFF66BB6A), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Restore default", color = SuccessGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
