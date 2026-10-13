@@ -545,7 +545,8 @@ fun EditableLayoutView(
                                             }
                                         }
                                         Spacer(Modifier.height(2.dp))
-                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
+                                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                                             Box(Modifier.size(18.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF2A2A4A))
                                                 .clickable { pushU(); onResizeKey(ri, ki, (key.width - 0.5f).coerceAtLeast(0.5f)) }, contentAlignment = Alignment.Center) {
                                                 Text("\u2212", color = Color(0xFF00E5FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -555,8 +556,16 @@ fun EditableLayoutView(
                                                 .clickable { pushU(); onResizeKey(ri, ki, (key.width + 0.5f).coerceAtMost(4f)) }, contentAlignment = Alignment.Center) {
                                                 Text("+", color = Color(0xFF00E5FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
-                                            Spacer(Modifier.width(4.dp))
-                                            Text("H${key.height}x", color = Color(0xFF66BB6A), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 2.dp))
+                                            Spacer(Modifier.width(6.dp))
+                                            Box(Modifier.size(18.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF2A2A4A))
+                                                .clickable { pushU(); onResizeHeight(ri, ki, (key.height - 0.25f).coerceAtLeast(0.75f)) }, contentAlignment = Alignment.Center) {
+                                                Text("\u2212", color = Color(0xFF66BB6A), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            Text("H${key.height}x", color = Color(0xFF66BB6A), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp))
+                                            Box(Modifier.size(18.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF2A2A4A))
+                                                .clickable { pushU(); onResizeHeight(ri, ki, (key.height + 0.25f).coerceAtMost(2.5f)) }, contentAlignment = Alignment.Center) {
+                                                Text("+", color = Color(0xFF66BB6A), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            }
                                             Spacer(Modifier.width(4.dp))
                                             Box(Modifier.size(18.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF1A2A3A))
                                                 .clickable { if (ri > 0) { pushU(); onMoveUp(ri, ki) } }, contentAlignment = Alignment.Center) {
@@ -648,8 +657,16 @@ fun EditableLayoutView(
                     Spacer(Modifier.width(6.dp))
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        ToolChip("W\u2212", Color(0xFF00E5FF)) { pushU(); onResizeKey(sri, ski, (sk.width - 0.5f).coerceAtLeast(0.5f)) }
+                        ToolChip("W+", Color(0xFF00E5FF)) { pushU(); onResizeKey(sri, ski, (sk.width + 0.5f).coerceAtMost(4f)) }
                         listOf(0.5f, 1f, 1.5f, 2f, 3f, 4f).forEach { w ->
-                            ToolChip(if (w % 1f == 0f) "W${w.toInt()}" else "W1\u00BD", Color(0xFF00E5FF)) { pushU(); onResizeKey(sri, ski, w) }
+                            // 0.5 and 1.5 both fall in the else branch, so label by value.
+                            val label = when {
+                                w % 1f == 0f -> "W${w.toInt()}"
+                                w < 1f -> "W\u00BD"
+                                else -> "W1\u00BD"
+                            }
+                            ToolChip(label, Color(0xFF00E5FF)) { pushU(); onResizeKey(sri, ski, w) }
                         }
                         ToolChip("H\u2212", Color(0xFF66BB6A)) { pushU(); onResizeHeight(sri, ski, (sk.height - 0.25f).coerceAtLeast(0.75f)) }
                         ToolChip("H+", Color(0xFF66BB6A)) { pushU(); onResizeHeight(sri, ski, (sk.height + 0.25f).coerceAtMost(2.5f)) }

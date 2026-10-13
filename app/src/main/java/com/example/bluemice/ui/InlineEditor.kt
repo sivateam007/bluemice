@@ -410,10 +410,10 @@ fun EditModeBar(
 ) {
     var showLoadMenu by remember { mutableStateOf(false) }
 
-    // Scrollable so Save/Done stay reachable: on a phone this row carries ~10
-    // controls and they otherwise run straight off the right edge.
+    // Save and Done are pinned outside the scrollable group. This bar carries
+    // ~10 controls on a phone; letting them all run to the right edge is what
+    // pushed Save off screen in the first place.
     Row(Modifier.fillMaxWidth().background(CardSurface)
-        .horizontalScroll(rememberScrollState())
         .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A2A3A))
@@ -421,7 +421,7 @@ fun EditModeBar(
             .padding(horizontal = 8.dp, vertical = 6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(layoutName.ifEmpty { "New Layout" }, color = TextSecondary, fontSize = 11.sp, maxLines = 1,
-                    modifier = Modifier.width(80.dp))
+                    modifier = Modifier.width(64.dp))
                 Spacer(Modifier.width(2.dp))
                 Icon(Icons.Default.NavigateNext, null, tint = TextSecondary, modifier = Modifier.size(14.dp))
             }
@@ -445,6 +445,8 @@ fun EditModeBar(
         Spacer(Modifier.width(4.dp))
         Text("|", color = TextSecondary.copy(alpha = 0.3f), fontSize = 14.sp)
         Spacer(Modifier.width(4.dp))
+        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A3A2A))
             .clickable { onAddKey() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -502,7 +504,7 @@ fun EditModeBar(
                 Icon(Icons.Default.Redo, "Redo", tint = if (canRedo) Color(0xFFB39DDB) else Color(0xFF555566), modifier = Modifier.size(14.dp))
             }
         }
-        Spacer(Modifier.weight(1f))
+        }
         // Always offer Save so a deliberately blank layout can be persisted
         // (previously hidden when empty, which trapped blank layouts).
         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A4A2A))
