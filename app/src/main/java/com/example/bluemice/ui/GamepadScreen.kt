@@ -226,18 +226,16 @@ fun GamepadScreen(
                     bottom = if (isEditing) 64.dp else if (isLandscape) 4.dp else 8.dp
                 )
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Gamepad", color = CyanNeon, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                if (padConfig.preset != GamepadConfig.PRESET_XBOX) {
-                    Spacer(Modifier.width(6.dp))
-                    Text(padConfig.preset, color = CyanDim, fontSize = 9.sp)
-                }
-                Spacer(Modifier.weight(1f))
+            ScreenHeader(
+                title = "Gamepad",
+                subtitle = if (padConfig.preset == GamepadConfig.PRESET_XBOX) "Xbox layout" else padConfig.preset,
+                accent = CyanNeon,
+                scrollActions = true
+            ) {
                 IconButton(onClick = { showPadSettings = true }) {
                     Icon(Icons.Default.Settings, "Gamepad settings", tint = TextSecondary, modifier = Modifier.size(20.dp))
                 }
-                Text("BT", color = CyanDim, fontSize = 10.sp)
-                Spacer(Modifier.width(8.dp))
+                Text("BT", color = CyanDim, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, end = 8.dp))
                 IconButton(onClick = {
                     isEditing = !isEditing
                     if (isEditing) {

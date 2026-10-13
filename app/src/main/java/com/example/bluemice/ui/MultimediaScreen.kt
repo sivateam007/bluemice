@@ -145,9 +145,7 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
             .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
 
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Media", color = Color(0xFF00E5FF), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.weight(1f))
+            ScreenHeader(title = "Media", subtitle = "Playback · volume · navigation") {
                 IconButton(onClick = { isEditing = !isEditing; if (!isEditing) saveLayout(editRows) }) {
                     Icon(Icons.Default.Edit, null, tint = if (isEditing) Color(0xFF4CAF50) else TextSecondary, modifier = Modifier.size(22.dp))
                 }

@@ -169,9 +169,7 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
             ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Presenter", color = Color(0xFF00E5FF), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.weight(1f))
+            ScreenHeader(title = "Presenter", subtitle = "Slides · laser · navigation") {
                 IconButton(onClick = { isEditing = !isEditing; if (!isEditing) saveLayout(editRows) }) {
                     Icon(Icons.Default.Edit, null, tint = if (isEditing) Color(0xFF4CAF50) else TextSecondary, modifier = Modifier.size(22.dp))
                 }

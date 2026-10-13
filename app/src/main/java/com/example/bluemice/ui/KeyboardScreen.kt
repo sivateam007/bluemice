@@ -169,14 +169,10 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             // Same header treatment as the other screens so the app reads as one product.
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Keyboard", color = Color(0xFF00E5FF), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.weight(1f))
-                Text(
-                    if (keyboardMode == "language") "Language board" else "Layout keys",
-                    color = TextSecondary, fontSize = 11.sp
-                )
-            }
+            ScreenHeader(
+                title = "Keyboard",
+                subtitle = if (keyboardMode == "language") "Language board" else "Layout keys"
+            )
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(8.dp))
