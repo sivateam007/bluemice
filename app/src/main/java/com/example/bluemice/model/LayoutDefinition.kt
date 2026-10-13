@@ -672,61 +672,55 @@ object PredefinedLayouts {
     ), "numpad")
 
     /** Everything the Media screen used to hard-code, as ordinary editable keys. */
+    /**
+     * Media remote built around the pattern every good transport UI uses:
+     * Previous · Play/Pause · Next as one dominant bar, then grouped control
+     * bands underneath - secondary transport, sound, light, navigation. Groups
+     * are tinted so you can find them without reading, every key is at least
+     * 48dp, and the hero row is 72dp so Play/Pause is the obvious target.
+     * Rows share the same 12-unit split, so the nav arrows form a real cross
+     * with OK dead centre - the way a TV remote lays it out.
+     */
     val MEDIA_DEFAULT = LayoutDefinition("Media Default", listOf(
+        // R1 - hero: prev / play-pause / next, play-pause widest. 72dp tall.
         LayoutRow(listOf(
+            LayoutKey("⏮", consumerCode = 0x00B6, width = 3.5f, height = 1.5f, backgroundColor = 0xFF1A5A52),
+            LayoutKey("⏯", consumerCode = 0x00CD, width = 5f, height = 1.5f, backgroundColor = 0xFF1A5A52),
+            LayoutKey("⏭", consumerCode = 0x00B5, width = 3.5f, height = 1.5f, backgroundColor = 0xFF1A5A52)
+        )),
+        // R2 - the rest of the transport deck, same family, one shade quieter.
+        LayoutRow(listOf(
+            LayoutKey("⏹", consumerCode = 0x00B7, backgroundColor = 0xFF1A3A3A),
+            LayoutKey("⏪", consumerCode = 0x00B4, backgroundColor = 0xFF1A3A3A),
+            LayoutKey("⏩", consumerCode = 0x00B3, backgroundColor = 0xFF1A3A3A)
+        )),
+        // R3 - sound band, amber.
+        LayoutRow(listOf(
+            LayoutKey("Vol−", consumerCode = 0x00EA, backgroundColor = 0xFF3A3A1A),
             LayoutKey("Mute", consumerCode = 0x00E2, backgroundColor = 0xFF4A2A2A),
-            LayoutKey("Vol\u2212", consumerCode = 0x00EA, backgroundColor = 0xFF3A3A1A),
-            LayoutKey("Vol+", consumerCode = 0x00E9, backgroundColor = 0xFF3A3A1A),
+            LayoutKey("Vol+", consumerCode = 0x00E9, backgroundColor = 0xFF3A3A1A)
+        )),
+        // R4 - light band, blue.
+        LayoutRow(listOf(
+            LayoutKey("Br−", consumerCode = 0x0070, width = 6f, backgroundColor = 0xFF2A2A4A),
+            LayoutKey("Br+", consumerCode = 0x006F, width = 6f, backgroundColor = 0xFF2A2A4A)
+        )),
+        // R5-R7 - navigation. 4 | 4 | 4 on all three rows puts Up / OK / Down in
+        // one column and Left / Right either side of OK, i.e. a true cross.
+        LayoutRow(listOf(
+            LayoutKey("Esc", keyCode = 0x29, backgroundColor = 0xFF2A3A2A),
+            LayoutKey("↑", keyCode = 0x52),
+            LayoutKey("Full", keyCode = 0x77, backgroundColor = 0xFF2A3A2A)
         )),
         LayoutRow(listOf(
-            LayoutKey("Br\u2212", consumerCode = 0x0070, backgroundColor = 0xFF2A2A4A),
-            LayoutKey("Br+", consumerCode = 0x006F, backgroundColor = 0xFF2A2A4A),
+            LayoutKey("←", keyCode = 0x50),
+            LayoutKey("OK", keyCode = 0x28, backgroundColor = 0xFF2A4A2A),
+            LayoutKey("→", keyCode = 0x4F)
         )),
         LayoutRow(listOf(
-            LayoutKey("\u23EE", consumerCode = 0x00B6, backgroundColor = 0xFF1A3A3A),
-            LayoutKey("\u23EA", consumerCode = 0x00B4, backgroundColor = 0xFF1A3A3A),
-            LayoutKey("\u23F8", consumerCode = 0x00B1, backgroundColor = 0xFF1A4A3A),
-            LayoutKey("\u25B6", consumerCode = 0x00B0, backgroundColor = 0xFF1A4A3A),
-            LayoutKey("\u23ED", consumerCode = 0x00B5, backgroundColor = 0xFF1A3A3A),
-            LayoutKey("\u23F9", consumerCode = 0x00B7, backgroundColor = 0xFF3A1A1A),
-        )),
-        // Navigation pad (the old MediaDpad cross, unwound into one editable row)
-        LayoutRow(listOf(
-            LayoutKey("\u2191", keyCode = 0x52, width = 1.2f),
-            LayoutKey("\u2190", keyCode = 0x50, width = 1.2f),
-            LayoutKey("OK", keyCode = 0x28, width = 1.2f, backgroundColor = 0xFF2A4A2A),
-            LayoutKey("\u2192", keyCode = 0x4F, width = 1.2f),
-            LayoutKey("\u2193", keyCode = 0x51, width = 1.2f),
-        )),
-        LayoutRow(listOf(
-            LayoutKey("Esc", keyCode = 0x29),
-            LayoutKey("F11", keyCode = 0x44),
-            LayoutKey("Full", keyCode = 0x77, backgroundColor = 0xFF2A3A2A),
             LayoutKey("Sleep", keyCode = 0x82.toByte(), backgroundColor = 0xFF2A3A5A),
-            LayoutKey("Wake", keyCode = 0x83.toByte(), backgroundColor = 0xFF2A3A5A),
-        )),
-        LayoutRow(listOf(
-            LayoutKey("Calc", keyCode = 0x7B, backgroundColor = 0xFF2A2A5A),
-            LayoutKey("Mail", keyCode = 0x75, backgroundColor = 0xFF4A2A2A),
-            LayoutKey("Web", keyCode = 0x74, backgroundColor = 0xFF2A3A5A),
-            LayoutKey("MyPC", keyCode = 0x7A, backgroundColor = 0xFF2A4A3A),
-            LayoutKey("Search", keyCode = 0x77),
-        )),
-        LayoutRow(listOf(
-            LayoutKey("Copy", comboMods = 0x01, comboKey = 0x06, width = 1.3f),
-            LayoutKey("Paste", comboMods = 0x01, comboKey = 0x19, width = 1.3f),
-            LayoutKey("Cut", comboMods = 0x01, comboKey = 0x1B, width = 1.3f),
-            LayoutKey("Undo", comboMods = 0x01, comboKey = 0x1D, width = 1.3f),
-            LayoutKey("Redo", comboMods = 0x01, comboKey = 0x1C, width = 1.3f),
-            LayoutKey("Save", comboMods = 0x01, comboKey = 0x16, width = 1.3f),
-            LayoutKey("SelAll", comboMods = 0x01, comboKey = 0x04, width = 1.3f),
-        )),
-        LayoutRow(listOf(
-            LayoutKey("Lock", comboMods = 0x08, comboKey = 0x0F, width = 1.3f),
-            LayoutKey("Desk", comboMods = 0x08, comboKey = 0x07, width = 1.3f),
-            LayoutKey("Run", comboMods = 0x08, comboKey = 0x15, width = 1.3f),
-            LayoutKey("Close", comboMods = 0x04, comboKey = 0x3D, width = 1.3f),
-            LayoutKey("TaskMgr", comboMods = 0x03, comboKey = 0x29, width = 1.3f),
+            LayoutKey("↓", keyCode = 0x51),
+            LayoutKey("Wake", keyCode = 0x83.toByte(), backgroundColor = 0xFF2A3A5A)
         ))
     ), "media")
 
