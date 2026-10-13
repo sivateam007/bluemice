@@ -8,17 +8,29 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -31,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -39,12 +52,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.bluemice.BleHidManager
 import com.example.bluemice.HidReportBuilder
 import com.example.bluemice.SettingsManager
 import com.example.bluemice.model.KeyboardLanguageCatalog
+import com.example.bluemice.ui.theme.CardBorder
+import com.example.bluemice.ui.theme.GitRed
+import com.example.bluemice.ui.theme.SuccessGreen
+import com.example.bluemice.ui.theme.TextPrimary
+import com.example.bluemice.ui.theme.TextSecondary
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -62,11 +82,37 @@ fun ScannerScreen(bleManager: BleHidManager, settingsManager: SettingsManager? =
     var skipDuplicate by remember { mutableStateOf(settingsManager?.scannerSkipDuplicate ?: false) }
     val language = remember { KeyboardLanguageCatalog.byLocale(settingsManager?.selectedLanguage ?: "en") }
     val KC = HidReportBuilder.KeyCodes
-    var hasCamera = remember { ctx.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }
-    var permissionGranted = remember {
-        ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+    val hasCamera = remember { ctx.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }
+    // This used to be a plain `remember { ... }`, i.e. a non-reactive Boolean read
+    // exactly once - so granting the camera permission (here or in Settings) left
+    // the screen stuck on "Camera permission required" until the app restarted.
+    var permissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
+        )
     }
     var previewViewRef = remember { mutableStateOf<PreviewView?>(null) }
+
+    // Ask in place. The old flow only offered "Open Settings", which is a dead end
+    // for a permission this routine should just prompt for.
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> permissionGranted = granted }
+
+    // Returning from the Settings screen has to re-read the grant; the pager keeps
+    // this composition alive, so `remember` alone never picks it up.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                permissionGranted = ContextCompat.checkSelfPermission(
+                    ctx, Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     fun typeScanned() {
         val text = scannedText
@@ -84,31 +130,85 @@ fun ScannerScreen(bleManager: BleHidManager, settingsManager: SettingsManager? =
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1A1A1A))
-            .padding(12.dp)
+            .screenBackground()
+            .padding(16.dp)
     ) {
-        Text("Code Scanner", color = Color(0xFFEEEEEE), fontSize = 16.sp,
-            fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+        // Same lockup as the six control screens - this was the odd one out.
+        ScreenHeader(
+            title = "Scanner",
+            subtitle = "Scan barcodes and QR codes straight to the PC"
+        )
+
+        Spacer(Modifier.height(12.dp))
 
         if (!hasCamera) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No camera available", color = Color(0xFF888888), fontSize = 14.sp)
+                Text("No camera available", color = TextSecondary, fontSize = 14.sp)
             }
         } else if (!permissionGranted) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Camera permission required", color = Color(0xFFCCCCCC), fontSize = 14.sp)
-                    Button(
-                        onClick = {
-                            ctx.startActivity(
-                                android.content.Intent(
-                                    android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                                ).apply { data = android.net.Uri.fromParts("package", ctx.packageName, null) }
+                ScreenPanel(Modifier.fillMaxWidth()) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            Modifier.size(56.dp)
+                                .clip(RoundedCornerShape(Dimens.PanelRadius))
+                                .background(GitRed.copy(alpha = 0.14f))
+                                .border(1.dp, GitRed.copy(alpha = 0.40f), RoundedCornerShape(Dimens.PanelRadius)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Warning, null, tint = GitRed, modifier = Modifier.size(26.dp))
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        Text(
+                            "Camera access needed",
+                            color = TextPrimary,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "The scanner reads barcodes with your phone camera. " +
+                                "Results are typed straight to the PC and nothing is uploaded.",
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 17.sp
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        // Primary path: prompt right here instead of exiling the user
+                        // to Android Settings with no context.
+                        Button(
+                            onClick = { cameraLauncher.launch(Manifest.permission.CAMERA) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(Dimens.ControlRadius),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AccentCyan,
+                                contentColor = Color(0xFF03222C)
                             )
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF)),
-                        modifier = Modifier.padding(top = 12.dp)
-                    ) { Text("Open Settings") }
+                        ) {
+                            Text("Allow camera access", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = {
+                                ctx.startActivity(
+                                    android.content.Intent(
+                                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                    ).apply { data = android.net.Uri.fromParts("package", ctx.packageName, null) }
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(Dimens.ControlRadius),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                        ) {
+                            Icon(Icons.Default.Settings, null, Modifier.size(16.dp), tint = TextSecondary)
+                            Spacer(Modifier.width(6.dp))
+                            Text("Open app settings", color = TextSecondary, fontSize = 13.sp)
+                        }
+                    }
                 }
             }
         } else {
@@ -117,6 +217,7 @@ fun ScannerScreen(bleManager: BleHidManager, settingsManager: SettingsManager? =
                     .fillMaxWidth()
                     .weight(1f)
                     .background(Color(0xFF000000), RoundedCornerShape(12.dp))
+                    .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
             ) {
                 AndroidView(
                     factory = { context ->
@@ -135,7 +236,7 @@ fun ScannerScreen(bleManager: BleHidManager, settingsManager: SettingsManager? =
                 Text(
                     text = if (scannedText.isEmpty()) "Point camera at a barcode or QR code"
                            else scannedText,
-                    color = if (scannedText.isEmpty()) Color(0xFF888888) else Color(0xFF4CAF50),
+                    color = if (scannedText.isEmpty()) TextSecondary else SuccessGreen,
                     fontSize = 13.sp,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
@@ -149,13 +250,21 @@ fun ScannerScreen(bleManager: BleHidManager, settingsManager: SettingsManager? =
                 ) {
                     Button(
                         onClick = { typeScanned() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AccentCyan,
+                            contentColor = Color(0xFF03222C)
+                        ),
+                        shape = RoundedCornerShape(Dimens.ControlRadius),
                         modifier = Modifier.weight(1f)
-                    ) { Text("Type to PC") }
+                    ) { Text("Type to PC", fontWeight = FontWeight.SemiBold) }
 
                     Button(
                         onClick = { scannedText = "" },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A2A2A)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = GitRed.copy(alpha = 0.20f),
+                            contentColor = GitRed
+                        ),
+                        shape = RoundedCornerShape(Dimens.ControlRadius),
                         modifier = Modifier.weight(1f)
                     ) { Text("Clear") }
                 }
@@ -252,13 +361,13 @@ private fun ToggleRow(label: String, checked: Boolean, onChanged: (Boolean) -> U
         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = Color(0xFFCCCCCC), fontSize = 13.sp, modifier = Modifier.weight(1f))
+        Text(label, color = TextPrimary, fontSize = 13.sp, modifier = Modifier.weight(1f))
         Switch(
             checked = checked,
             onCheckedChange = onChanged,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color(0xFF7C4DFF),
-                checkedTrackColor = Color(0xFF7C4DFF).copy(alpha = 0.4f)
+                checkedThumbColor = AccentCyan,
+                checkedTrackColor = AccentCyan.copy(alpha = 0.35f)
             )
         )
     }
