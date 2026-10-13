@@ -607,70 +607,6 @@ object PredefinedLayouts {
         ))
     ), "mouse")
 
-    /**
-     * Mirrors the live numpad screen: display controls, digits, operators and the
-     * extra function row. "C"/"CE"/"+-" send nothing on purpose - they only shape
-     * the on-screen readout, which NumpadScreen mirrors via onKeySent.
-     */
-    val NUMPAD_DEFAULT = LayoutDefinition("Numpad Default", listOf(
-        LayoutRow(listOf(
-            LayoutKey("C", width = 0.8f, backgroundColor = 0xFF6A1A1A),
-            LayoutKey("CE", backgroundColor = 0xFF6A1A1A),
-            LayoutKey("\u232B", keyCode = KC.KEY_BACKSPACE, backgroundColor = 0xFF8B3A3A),
-            LayoutKey("Calc", keyCode = 0x7B, width = 0.9f, backgroundColor = 0xFF2A2A5A),
-        )),
-        LayoutRow(listOf(
-            LayoutKey("NumLk", keyCode = KC.KEY_NUM_LOCK, backgroundColor = 0xFF4A2A2A),
-            // "(" ")" and "%" need shift; the old screen sent bare W/X/. by mistake.
-            LayoutKey("(", comboMods = 0x01, comboKey = 0x26, backgroundColor = 0xFF2A3A4A),
-            LayoutKey(")", comboMods = 0x01, comboKey = 0x27, backgroundColor = 0xFF2A3A4A),
-            LayoutKey("%", comboMods = 0x01, comboKey = 0x22, backgroundColor = 0xFF3A3A50),
-            LayoutKey("/", keyCode = KC.KEY_KP_SLASH, backgroundColor = 0xFF3A3A50),
-        )),
-        LayoutRow(listOf(
-            LayoutKey("7", keyCode = KC.KEY_KP_7),
-            LayoutKey("8", keyCode = KC.KEY_KP_8),
-            LayoutKey("9", keyCode = KC.KEY_KP_9),
-            LayoutKey("\u00D7", keyCode = KC.KEY_KP_ASTERISK, backgroundColor = 0xFF3A3A50),
-            LayoutKey("\u232B", keyCode = KC.KEY_BACKSPACE, backgroundColor = 0xFF8B3A3A),
-        )),
-        LayoutRow(listOf(
-            LayoutKey("4", keyCode = KC.KEY_KP_4),
-            LayoutKey("5", keyCode = KC.KEY_KP_5),
-            LayoutKey("6", keyCode = KC.KEY_KP_6),
-            LayoutKey("\u2212", keyCode = KC.KEY_KP_MINUS, backgroundColor = 0xFF3A3A50),
-            LayoutKey("CE", backgroundColor = 0xFF6A1A1A),
-        )),
-        LayoutRow(listOf(
-            LayoutKey("1", keyCode = KC.KEY_KP_1),
-            LayoutKey("2", keyCode = KC.KEY_KP_2),
-            LayoutKey("3", keyCode = KC.KEY_KP_3),
-            LayoutKey("+", keyCode = KC.KEY_KP_PLUS, backgroundColor = 0xFF3A3A50),
-            LayoutKey("Enter", keyCode = KC.KEY_KP_ENTER, width = 1.2f, backgroundColor = 0xFF2A4A2A),
-        )),
-        LayoutRow(listOf(
-            LayoutKey("\u00B1", backgroundColor = 0xFF3A3A50),
-            LayoutKey("0", keyCode = KC.KEY_KP_0, width = 1.5f),
-            LayoutKey(".", keyCode = KC.KEY_KP_DOT),
-            LayoutKey("00", width = 1.1f, macroSteps = listOf(
-                MacroStep("key", KC.KEY_KP_0), MacroStep("key", KC.KEY_KP_0))),
-            LayoutKey("000", width = 1.1f, macroSteps = listOf(
-                MacroStep("key", KC.KEY_KP_0), MacroStep("key", KC.KEY_KP_0), MacroStep("key", KC.KEY_KP_0))),
-        )),
-        LayoutRow(listOf(
-            LayoutKey("Tab", keyCode = KC.KEY_TAB, width = 1.2f),
-            LayoutKey("Space", keyCode = KC.KEY_SPACE, width = 2f),
-            LayoutKey("\u2190", keyCode = KC.KEY_ARROW_LEFT),
-            LayoutKey("\u2192", keyCode = KC.KEY_ARROW_RIGHT),
-        )),
-        LayoutRow(listOf(
-            LayoutKey("ScrLk", keyCode = KC.KEY_SCROLL_LOCK),
-            LayoutKey("Pause", keyCode = KC.KEY_PAUSE),
-            LayoutKey("Sleep", keyCode = KC.KEY_SLEEP),
-            LayoutKey("Wake", keyCode = KC.KEY_WAKE),
-        ))
-    ), "numpad")
-
     /** Everything the Media screen used to hard-code, as ordinary editable keys. */
     /**
      * Media remote built around the pattern every good transport UI uses:
@@ -806,5 +742,5 @@ object PredefinedLayouts {
         GAMING, MEDIA_PLAYER, NUMPAD, NAVIGATION, PRODUCTIVITY, SYSTEM_SHORTCUTS,
         QUICK_LAUNCH, BROWSER, FUNCTION_ROW,
         DEVELOPER_PRO, DESIGNER_PRO, OFFICE_PRO, GAMING_PRO,
-        MOUSE_DEFAULT, NUMPAD_DEFAULT, MEDIA_DEFAULT, GAMEPAD_DEFAULT, PRESENTER_DEFAULT)
+        MOUSE_DEFAULT, MEDIA_DEFAULT, GAMEPAD_DEFAULT, PRESENTER_DEFAULT)
 }

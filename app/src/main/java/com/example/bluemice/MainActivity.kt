@@ -119,7 +119,6 @@ import com.example.bluemice.ui.GamepadScreen
 import com.example.bluemice.ui.KeyboardScreen
 import com.example.bluemice.ui.MouseScreen
 import com.example.bluemice.ui.MultimediaScreen
-import com.example.bluemice.ui.NumpadScreen
 import com.example.bluemice.ui.PresenterScreen
 import com.example.bluemice.ui.ScannerScreen
 import com.example.bluemice.ui.ScreenPanel
@@ -426,7 +425,6 @@ private val tabs = listOf(
     Tab("Keyboard", Icons.Default.Keyboard),
     Tab("Gamepad", Icons.Default.Gamepad),
     Tab("Media", Icons.Default.MusicNote),
-    Tab("Numpad", Icons.Default.Calculate),
     Tab("Presenter", Icons.Default.PresentToAll),
     Tab("Scanner", Icons.Default.QrCodeScanner)
 )
@@ -855,11 +853,11 @@ private fun MainScreen(
 
                     // My Layouts - grouped by mode
                     val modeTabIndex = remember {
-                        mapOf("mouse" to 0, "keyboard" to 1, "gamepad" to 2, "media" to 3, "numpad" to 4, "presenter" to 5)
+                        mapOf("mouse" to 0, "keyboard" to 1, "gamepad" to 2, "media" to 3, "presenter" to 4)
                     }
                     val allCustomLayouts = remember(layoutsVersion) {
                         layoutManager.run {
-                            listOf("mouse","keyboard","gamepad","media","numpad","presenter")
+                            listOf("mouse","keyboard","gamepad","media","presenter")
                                 .flatMap { mode -> getCustomLayouts(mode).map { l -> Triple(mode, l.name, l) } }
                         }
                     }
@@ -1151,15 +1149,11 @@ private fun MainScreen(
                                     layoutManager = layoutManager,
                                     settingsManager = settingsManager
                                 )
-                            4 -> NumpadScreen(
+                            4 -> PresenterScreen(
                                 bleManager = bleManager,
                                 layoutManager = layoutManager
                             )
-                            5 -> PresenterScreen(
-                                bleManager = bleManager,
-                                layoutManager = layoutManager
-                            )
-                            6 -> ScannerScreen(
+                            5 -> ScannerScreen(
                                 bleManager = bleManager,
                                 settingsManager = settingsManager
                             )
@@ -1567,7 +1561,6 @@ private fun modeIcon(mode: String): ImageVector = when (mode) {
     "mouse" -> Icons.Default.Mouse
     "gamepad" -> Icons.Default.Gamepad
     "media" -> Icons.Default.MusicNote
-    "numpad" -> Icons.Default.Calculate
     "presenter" -> Icons.Default.PresentToAll
     else -> Icons.Default.Keyboard
 }
