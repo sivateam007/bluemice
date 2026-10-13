@@ -56,7 +56,15 @@ data class LayoutKey(
     val fullWidth: Boolean = false,
     val align: String = "start",
     val repeat: Boolean = false,
-    val levels: KeyLevels? = null
+    val levels: KeyLevels? = null,
+    // Appearance knobs. Every one is defaulted so layouts saved before they
+    // existed still load, and still look exactly as they did.
+    val cornerRadius: Float = 8f,
+    val borderWidth: Float = 1f,
+    val glow: Float = 0f,
+    val fontSize: Float = 0f,
+    val boldText: Boolean = false,
+    val opacity: Float = 1f
 )
 
 object PredefinedLayouts {

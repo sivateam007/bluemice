@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -692,17 +693,42 @@ fun EditableLayoutView(
                                 val keyH = (48f * key.height.coerceIn(0.7f, 2.5f)).dp
                                 val currentKey by rememberUpdatedState(key)
                                 val isSelected = selectedKey == ri to ki
+                                // Style knobs. Every one is defaulted on LayoutKey, so a
+                                // layout saved before they existed renders exactly as it
+                                // always did.
+                                val radius = key.cornerRadius.coerceIn(0f, 24f).dp
+                                val borderW = key.borderWidth.coerceIn(0f, 4f).dp
+                                val glowPx = key.glow.coerceIn(0f, 1f)
+                                val faceAlpha = key.opacity.coerceIn(0.15f, 1f)
+                                val faceColor = when {
+                                    isDragOrig -> Color(0xFF00E5FF).copy(alpha = 0.15f)
+                                    isSpacer -> Color.Transparent
+                                    else -> bgColor.copy(alpha = bgColor.alpha * faceAlpha)
+                                }
+                                // 8.sp is what every label used before the style knobs
+                                // existed; a key that sets its own font size gets it.
+                                val labelFont = if (key.fontSize > 0f) key.fontSize.coerceIn(6f, 24f).sp else 8.sp
+                                val labelWeight = if (key.boldText) FontWeight.Bold else FontWeight.Medium
                                 Box(modifier = Modifier
                                     .weight(key.width.coerceAtLeast(0.5f))
                                     .height(keyH)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        when {
-                                            isDragOrig -> Color(0xFF00E5FF).copy(alpha = 0.15f)
-                                            isSpacer -> Color.Transparent
-                                            else -> bgColor
-                                        }
+                                    .then(
+                                        // The glow has to paint before the face, or it would
+                                        // sit on top of the label it is meant to frame.
+                                        if (glowPx > 0f && !isSpacer) Modifier.drawBehind {
+                                            repeat(3) { i ->
+                                                val spread = (3 - i) * 3f * glowPx
+                                                drawRoundRect(
+                                                    color = bgColor.copy(alpha = 0.10f * glowPx * (i + 1)),
+                                                    topLeft = Offset(-spread, -spread),
+                                                    size = Size(size.width + spread * 2f, size.height + spread * 2f),
+                                                    cornerRadius = CornerRadius(radius.toPx() + spread, radius.toPx() + spread)
+                                                )
+                                            }
+                                        } else Modifier
                                     )
+                                    .clip(RoundedCornerShape(radius))
+                                    .background(faceColor)
                                     .then(
                                         // A spacer must not look like a key, but it still has
                                         // to be findable and tappable to move or delete it.
@@ -717,16 +743,16 @@ fun EditableLayoutView(
                                                         floatArrayOf(9f, 7f), 0f
                                                     )
                                                 ),
-                                                cornerRadius = CornerRadius(8.dp.toPx())
+                                                cornerRadius = CornerRadius(radius.toPx())
                                             )
                                         } else Modifier
                                     )
-                                    .border(1.dp, when {
+                                    .border(borderW, when {
                                         isDragOrig -> Color(0xFF00E5FF).copy(alpha = 0.5f)
                                         isSelected -> Color(0xFF00E5FF)
                                         isSpacer -> Color.Transparent
                                         else -> Color(0x24FFFFFF)
-                                    }, RoundedCornerShape(8.dp))
+                                    }, RoundedCornerShape(radius))
                                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                                         if (dragStart == null) {
                                             // A swap is pending: this tap picks the target
@@ -806,11 +832,11 @@ fun EditableLayoutView(
                                             } else if (eIcon != null && eText.isNotEmpty()) {
                                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                                     Icon(eIcon, contentDescription = key.label, tint = tColor, modifier = Modifier.size(12.dp))
-                                                    Text(eText, color = tColor, fontSize = 9.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+                                                    Text(eText, color = tColor, fontSize = labelFont, fontWeight = labelWeight, maxLines = 1)
                                                 }
                                             } else {
-                                                Text(eText.ifEmpty { key.label }, color = tColor, fontSize = if (isTouchpad) 9.sp else 8.sp,
-                                                    fontWeight = FontWeight.Medium, textAlign = TextAlign.Center,
+                                                Text(eText.ifEmpty { key.label }, color = tColor, fontSize = if (isTouchpad) 9.sp else labelFont,
+                                                    fontWeight = labelWeight, textAlign = TextAlign.Center,
                                                     maxLines = 2, modifier = Modifier.padding(horizontal = 2.dp))
                                             }
                                             Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF000000).copy(alpha = 0.3f))

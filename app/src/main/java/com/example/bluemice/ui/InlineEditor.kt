@@ -76,6 +76,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,6 +85,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
@@ -146,6 +148,52 @@ val palColors = listOf(
     0xFF3A3A3A, 0xFF4A90D9, 0xFF8B3A3A, 0xFF3A8B3A,
     0xFF8B6F3A, 0xFF6A3A8B, 0xFF3A6F8B, 0xFF8B3A6F
 )
+
+/**
+ * Labels you cannot type on a phone keyboard, laid out by family. A key that
+ * says "Right" is a key you have to read; the arrow is a key you recognise.
+ */
+private val glyphPresets = listOf(
+    "\u2191", "\u2193", "\u2190", "\u2192", "\u2196", "\u2197", "\u2198", "\u2199",
+    "\u2B06", "\u2B07", "\u2B05", "\u27A1", "\u2913", "\u2961",
+    "\u25B6", "\u23F8", "\u23ED", "\u23EE", "\u23CF", "\u23F9", "\u23E9", "\u23EA",
+    "\u266A", "\u266B", "\u26A0", "\u2714", "\u2718", "\u2605", "\u2606", "\u25CF",
+    "+", "\u2212", "\u00D7", "\u00F7", "=", "\u2260", "<", ">",
+    "(", ")", "[", "]", "/", "\\", "%", "#",
+    "\u2318", "\u2325", "\u21E7", "\u2303", "\u21B5", "\u232B", "\u238B", "\u21E5",
+    "\u00B1", "\u2248", "\u221E", "\u00B0", "\u00A7", "\u00B6", "\u00A9", "\u00AE"
+)
+
+/**
+ * One appearance knob: a caption, a slider and the resolved value. The value
+ * readout matters because "0.6" means nothing on a phone screen, while "14 sp"
+ * is the size you will get.
+ */
+@Composable
+private fun StyleSlider(
+    label: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    readout: String,
+    onValueChange: (Float) -> Unit,
+    trackColor: Color = Color(0xFF4A90D9)
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = TextSecondary, fontSize = 11.sp, modifier = Modifier.width(48.dp))
+        Slider(
+            value = value, onValueChange = onValueChange,
+            valueRange = range, steps = steps,
+            colors = SliderDefaults.colors(
+                thumbColor = Color.White,
+                activeTrackColor = trackColor,
+                inactiveTrackColor = Color(0xFF3A3A3A)
+            ),
+            modifier = Modifier.weight(1f)
+        )
+        Text(readout, color = TextPrimary, fontSize = 10.sp, modifier = Modifier.width(46.dp), textAlign = TextAlign.End)
+    }
+}
 
 private val letterKeys = ('A'..'Z').map { PalKey(it.toString(), keyCodeFor(it), 0.9f) }
 private val numberKeys = (0..9).map { PalKey(it.toString(), (0x1E + it).toByte(), 0.9f) }
@@ -1141,6 +1189,14 @@ fun EditKeySheet(
     var pickingBg by remember { mutableStateOf(false) }
     var pickingText by remember { mutableStateOf(false) }
     var applyScope by remember { mutableStateOf(ApplyScope.THIS_KEY) }
+    // Appearance knobs. Defaults match what the renderer always used, so a key
+    // that has never been styled still draws exactly as before.
+    var editRadius by remember { mutableFloatStateOf(key.cornerRadius) }
+    var editBorder by remember { mutableFloatStateOf(key.borderWidth) }
+    var editGlow by remember { mutableFloatStateOf(key.glow) }
+    var editFontSize by remember { mutableFloatStateOf(key.fontSize) }
+    var editBold by remember { mutableStateOf(key.boldText) }
+    var editOpacity by remember { mutableFloatStateOf(key.opacity) }
 
     @Composable
     fun FunctionContent() {
@@ -1159,6 +1215,27 @@ fun EditKeySheet(
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = Color(0xFF666666), cursorColor = MaterialTheme.colorScheme.primary,
                 focusedLabelColor = MaterialTheme.colorScheme.primary, unfocusedLabelColor = TextSecondary))
+
+        // "Right" has to be read; the arrow is recognised at a glance. These are
+        // the labels a phone keyboard will not produce, one tap away.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Glyph", color = TextSecondary, fontSize = 11.sp, modifier = Modifier.width(40.dp))
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFF2A2A3A))
+                    .clickable { editLabel = "" }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    Text("Clear", color = TextSecondary, fontSize = 10.sp)
+                }
+                glyphPresets.forEach { g ->
+                    val selected = editLabel == g
+                    Box(Modifier.clip(RoundedCornerShape(8.dp))
+                        .background(if (selected) MaterialTheme.colorScheme.primary else Color(0xFF2A2A3A))
+                        .clickable { editLabel = g }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                        Text(g, color = if (selected) Color.White else TextPrimary, fontSize = 13.sp)
+                    }
+                }
+            }
+        }
 
         if (editKeyType == "textBlock") {
             Text("TextBlock: ${editTextBlock.take(30)}", color = TextSecondary, fontSize = 11.sp)
@@ -1289,6 +1366,76 @@ fun EditKeySheet(
             }
         }
 
+        // Appearance. Nothing here changes what the key sends - only how it
+        // draws - so it is kept in one block under a live preview of the result.
+        SectionLabel("Appearance")
+
+        Box(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFF14161B)).padding(vertical = 14.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            val previewShape = RoundedCornerShape(editRadius.dp)
+            Box(
+                Modifier
+                    .graphicsLayer {
+                        alpha = editOpacity
+                        shadowElevation = with(density) { editGlow.dp.toPx() }
+                        shape = previewShape
+                    }
+                    .background(Color(editBg), previewShape)
+                    .border(
+                        width = editBorder.dp,
+                        color = if (editBorder > 0f) Color(autoTextColor(editBg)).copy(alpha = 0.55f) else Color.Transparent,
+                        shape = previewShape
+                    )
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    text = editLabel.ifEmpty { "Key" },
+                    color = Color(editTc ?: autoTextColor(editBg)),
+                    fontSize = if (editFontSize > 0f) editFontSize.sp else 15.sp,
+                    fontWeight = if (editBold) FontWeight.Bold else FontWeight.Normal,
+                    maxLines = 1
+                )
+            }
+        }
+
+        StyleSlider("Corner", editRadius, 0f..24f, 23, "${editRadius.roundToInt()} dp", onValueChange = { v: Float -> editRadius = v })
+        StyleSlider("Border", editBorder, 0f..4f, 15, if (editBorder < 0.5f) "None" else "${"%.1f".format(editBorder)} dp", onValueChange = { v: Float -> editBorder = v })
+        StyleSlider("Glow", editGlow, 0f..16f, 15, if (editGlow < 0.5f) "None" else "${editGlow.roundToInt()} dp", onValueChange = { v: Float -> editGlow = v })
+        StyleSlider(
+            "Font", editFontSize, 0f..28f, 27,
+            if (editFontSize < 0.5f) "Auto" else "${editFontSize.roundToInt()} sp",
+            onValueChange = { v: Float -> editFontSize = v }
+        )
+
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text("Weight", color = TextSecondary, fontSize = 11.sp, modifier = Modifier.width(48.dp))
+            listOf(false to "Regular", true to "Bold").forEach { (bold, label) ->
+                Box(
+                    Modifier.padding(end = 4.dp).clip(RoundedCornerShape(8.dp))
+                        .background(if (editBold == bold) MaterialTheme.colorScheme.primary else Color(0xFF2A2A3A))
+                        .clickable { editBold = bold }.padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Text(label, color = if (editBold == bold) Color.White else TextSecondary, fontSize = 10.sp)
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            Box(
+                Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFF2A2A3A))
+                    .clickable {
+                        editRadius = 8f; editBorder = 1f; editGlow = 0f
+                        editFontSize = 0f; editBold = false; editOpacity = 1f
+                    }
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
+            ) {
+                Text("Reset", color = TextSecondary, fontSize = 10.sp)
+            }
+        }
+
+        StyleSlider("Opacity", editOpacity, 0.2f..1f, 8, "${(editOpacity * 100).roundToInt()}%", onValueChange = { v: Float -> editOpacity = v })
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Full W", color = TextSecondary, fontSize = 11.sp, modifier = Modifier.width(40.dp))
             Box(Modifier.clip(RoundedCornerShape(8.dp)).background(if (editFullWidth) MaterialTheme.colorScheme.primary else Color(0xFF2A2A3A))
@@ -1373,7 +1520,7 @@ fun EditKeySheet(
         val pick = (letterKeys + numberKeys + fnKeys + navKeys)
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             pick.forEach { pk ->
-                val active = editComboKey == pk.code
+                val active = editComboKey.toInt() == pk.code.toInt()
                 Box(Modifier.clip(RoundedCornerShape(8.dp)).background(if (active) MaterialTheme.colorScheme.primary else Color(0xFF2A2A3A))
                     .clickable { editComboKey = pk.code }.padding(horizontal = 8.dp, vertical = 5.dp)) {
                     Text(pk.label, color = if (active) Color.White else TextSecondary, fontSize = 11.sp)
@@ -1540,7 +1687,9 @@ fun EditKeySheet(
                         gamepadButton = editGamepadButton, isGamepad = editIsGamepad,
                         textBlock = editTextBlock,
                         repeat = editRepeat, fullWidth = editFullWidth, align = editAlign,
-                        levels = editLevels, macroSteps = macroSteps)
+                        levels = editLevels, macroSteps = macroSteps,
+                        cornerRadius = editRadius, borderWidth = editBorder, glow = editGlow,
+                        fontSize = editFontSize, boldText = editBold, opacity = editOpacity)
                     RecentColors.push(updated.backgroundColor)
                     onApply(updated, applyScope)
                 }, modifier = Modifier.weight(1f),
