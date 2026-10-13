@@ -398,7 +398,7 @@ private fun KeyCell(
     }
     val pressed = if (key.isGamepad) gamepadHeld.value else tapPressed
 
-    val tColor = key.textColor?.let { Color(it) } ?: TextPrimary
+    val tColor = key.textColor?.let { Color(it) } ?: Color(autoTextColor(key.backgroundColor))
     val icon = keyIcon(key)
     val text = keyDisplayText(key)
 
@@ -686,7 +686,7 @@ fun EditableLayoutView(
                                 val isStick = key.keyType == "stickL" || key.keyType == "stickR"
                                 val isPad = key.keyType == "dpad" || key.keyType == "face"
                                 val isSpacer = key.keyType == "spacer"
-                                val tColor = key.textColor?.let { Color(it) } ?: TextPrimary
+                                val tColor = key.textColor?.let { Color(it) } ?: Color(autoTextColor(key.backgroundColor))
                                 // 48f to match widgetHeight, so a key is the same height
                                 // in the editor as it will be on the live pad.
                                 val keyH = (48f * key.height.coerceIn(0.7f, 2.5f)).dp

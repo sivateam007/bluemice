@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
@@ -1057,11 +1058,50 @@ private fun GamepadPaletteSheet(
     }
 }
 
+/** How far a batched size/colour edit reaches when you tap Apply. */
+enum class ApplyScope { THIS_KEY, ROW, LAYOUT, SAME_ACTION }
+
+/**
+ * Builds the rows a key edit produces.
+ *
+ * The edited key always takes the full [updated] - label, action, everything.
+ * When [scope] is wider than THIS_KEY, only size and colour are carried across
+ * the other keys and never what they send: batch-recolouring a row must not
+ * silently rewrite the actions on it.
+ */
+fun applyKeyEdit(
+    rows: List<MutableList<LayoutKey>>,
+    rowIdx: Int, keyIdx: Int,
+    source: LayoutKey, updated: LayoutKey, scope: ApplyScope
+): List<MutableList<LayoutKey>> {
+    fun face(k: LayoutKey) = k.copy(
+        width = updated.width, height = updated.height,
+        backgroundColor = updated.backgroundColor, textColor = updated.textColor
+    )
+    val out = rows.map { it.toMutableList() }.toMutableList()
+    when (scope) {
+        ApplyScope.THIS_KEY -> if (rowIdx in out.indices && keyIdx in out[rowIdx].indices)
+            out[rowIdx][keyIdx] = updated
+        ApplyScope.ROW -> if (rowIdx in out.indices) out[rowIdx] = out[rowIdx].map(::face).toMutableList()
+        ApplyScope.LAYOUT -> for (r in out.indices) out[r] = out[r].map(::face).toMutableList()
+        ApplyScope.SAME_ACTION -> {
+            val sameAction = { k: LayoutKey ->
+                k.keyType == source.keyType && k.keyCode == source.keyCode &&
+                    k.consumerCode == source.consumerCode && k.mouseButton == source.mouseButton &&
+                    k.gamepadButton == source.gamepadButton && k.comboKey == source.comboKey &&
+                    k.comboMods == source.comboMods && k.mouseScroll == source.mouseScroll
+            }
+            for (r in out.indices) out[r] = out[r].map { if (sameAction(it)) face(it) else it }.toMutableList()
+        }
+    }
+    return out
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditKeySheet(
     key: LayoutKey,
-    onApply: (LayoutKey) -> Unit,
+    onApply: (LayoutKey, ApplyScope) -> Unit,
     onDelete: () -> Unit,
     onMoveLeft: () -> Unit,
     onMoveRight: () -> Unit,
@@ -1093,6 +1133,11 @@ fun EditKeySheet(
     var editAlign by remember { mutableStateOf(key.align) }
     var editLevels by remember { mutableStateOf(key.levels) }
     var selectedTab by remember { mutableIntStateOf(0) }
+    // Which channel the full colour sheet is open for, and how far an Apply
+    // should spread the size and colour changes.
+    var pickingBg by remember { mutableStateOf(false) }
+    var pickingText by remember { mutableStateOf(false) }
+    var applyScope by remember { mutableStateOf(ApplyScope.THIS_KEY) }
 
     @Composable
     fun FunctionContent() {
@@ -1142,20 +1187,25 @@ fun EditKeySheet(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Color", color = TextSecondary, fontSize = 11.sp, modifier = Modifier.width(40.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 palColors.forEach { c ->
                     val isSelected = editBg == c
                     Box(Modifier.size(22.dp).clip(CircleShape).background(Color(c))
-                        .border(if (isSelected) 2.dp else 1.dp, if (isSelected) Color.White else Color.Transparent, CircleShape)
+                        .border(if (isSelected) 2.dp else 1.dp, if (isSelected) Color.White else CardBorder, CircleShape)
                         .clickable { editBg = c })
+                }
+                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFF2A2A3A))
+                    .clickable { pickingBg = true }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    Text(colorToHex(editBg), color = TextSecondary, fontSize = 10.sp)
                 }
             }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Text", color = TextSecondary, fontSize = 11.sp, modifier = Modifier.width(40.dp))
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Box(Modifier.clip(RoundedCornerShape(8.dp)).background(if (editTc == null) MaterialTheme.colorScheme.primary else Color(0xFF2A2A3A))
                     .clickable { editTc = null }.padding(horizontal = 8.dp, vertical = 4.dp)) {
                     Text("Auto", color = if (editTc == null) Color.White else TextSecondary, fontSize = 10.sp)
@@ -1163,8 +1213,45 @@ fun EditKeySheet(
                 palColors.forEach { c ->
                     val isSelected = editTc == c
                     Box(Modifier.size(22.dp).clip(CircleShape).background(Color(c))
-                        .border(if (isSelected) 2.dp else 1.dp, if (isSelected) Color.White else Color.Transparent, CircleShape)
+                        .border(if (isSelected) 2.dp else 1.dp, if (isSelected) Color.White else CardBorder, CircleShape)
                         .clickable { editTc = c })
+                }
+                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFF2A2A3A))
+                    .clickable { pickingText = true }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    val tc = editTc
+                    Text(if (tc == null) "Auto" else colorToHex(tc), color = TextSecondary, fontSize = 10.sp)
+                }
+            }
+        }
+
+        // Live readability check on the combination the user is about to apply.
+        // Auto text used to mean the theme's light grey whatever the face colour
+        // was, so pale keys were unreadable and nothing said so.
+        run {
+            val resolvedText = editTc ?: autoTextColor(editBg)
+            val ratio = contrastRatio(editBg, resolvedText)
+            val ok = isReadable(ratio)
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                    .background(if (ok) Color(0xFF1E2E22) else Color(0xFF33261A))
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    if (ok) Icons.Default.Check else Icons.Default.Warning, null,
+                    tint = if (ok) Color(0xFF4CAF50) else Color(0xFFE0A030),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Contrast %.1f:1  %s".format(ratio, if (ok) "readable" else "hard to read"),
+                    color = TextPrimary, fontSize = 10.sp, modifier = Modifier.weight(1f)
+                )
+                if (!ok) {
+                    Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A2A3A))
+                        .clickable { editTc = autoTextColor(editBg) }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                        Text("Fix it", color = Color(0xFFE0A030), fontSize = 10.sp)
+                    }
                 }
             }
         }
@@ -1389,10 +1476,30 @@ fun EditKeySheet(
                 }
             }
 
+            // Batch apply: size and colour only. What a key sends is never copied
+            // across to its neighbours - recolouring a row must not rewrite its
+            // actions - so the chips live next to the button that honours them.
+            Text("Batch apply size & colour to", color = TextSecondary, fontSize = 10.sp)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(
+                    ApplyScope.THIS_KEY to "This key",
+                    ApplyScope.ROW to "This row",
+                    ApplyScope.LAYOUT to "Whole layout",
+                    ApplyScope.SAME_ACTION to "Same action"
+                ).forEach { (scope, label) ->
+                    Box(Modifier.clip(RoundedCornerShape(8.dp))
+                        .background(if (applyScope == scope) MaterialTheme.colorScheme.primary else Color(0xFF2A2A3A))
+                        .clickable { applyScope = scope }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                        Text(label, color = if (applyScope == scope) Color.White else TextSecondary, fontSize = 10.sp)
+                    }
+                }
+            }
+
             // Apply / Delete
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Button(onClick = {
-                    onApply(key.copy(label = editLabel, width = editWidth, height = editHeight,
+                    val updated = key.copy(label = editLabel, width = editWidth, height = editHeight,
                         backgroundColor = editBg, textColor = editTc, keyType = editKeyType,
                         keyCode = editKeyCode, consumerCode = editConsumerCode,
                         mouseButton = editMouseButton, comboMods = editComboMods,
@@ -1401,9 +1508,8 @@ fun EditKeySheet(
                         textBlock = editTextBlock,
                         repeat = editRepeat, fullWidth = editFullWidth, align = editAlign,
                         levels = editLevels, macroSteps = macroSteps)
-)
-
-
+                    RecentColors.push(updated.backgroundColor)
+                    onApply(updated, applyScope)
                 }, modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))) {
                     Text("Apply", color = Color.White, fontSize = 12.sp)
@@ -1418,6 +1524,20 @@ fun EditKeySheet(
         }
     }
 
+    if (pickingBg) {
+        ColorPickerSheet(
+            title = "Key colour", initial = editBg,
+            onPick = { editBg = it; pickingBg = false },
+            onDismiss = { pickingBg = false }
+        )
+    }
+    if (pickingText) {
+        ColorPickerSheet(
+            title = "Text colour", initial = editTc ?: autoTextColor(editBg),
+            onPick = { editTc = it; pickingText = false },
+            onDismiss = { pickingText = false }
+        )
+    }
     if (showMacroEditor) {
         MacroEditorSheet(steps = macroSteps, onStepsChange = { macroSteps = it },
             onAdd = { showMacroEditor = false },
