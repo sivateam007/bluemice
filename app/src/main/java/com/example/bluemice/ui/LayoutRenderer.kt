@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -173,6 +174,13 @@ private fun KeyCell(
         }
     }
 
+    // Keys had no press feedback at all - a tap looked identical to an idle key,
+    // which is the biggest reason the pad read as a static picture rather than a
+    // control surface. Both input paths now feed one shared `pressed` flag.
+    val interactionSource = remember(key) { MutableInteractionSource() }
+    val tapPressed by interactionSource.collectIsPressedAsState()
+    val gamepadHeld = remember(key) { mutableStateOf(false) }
+
     // Gamepad keys are momentary: the report has to stay held while the finger is
     // down, so they bypass the tap path entirely.
     val pressModifier = if (key.isGamepad) {
@@ -180,7 +188,9 @@ private fun KeyCell(
             awaitPointerEventScope {
                 while (true) {
                     val event = awaitPointerEvent()
-                    if (event.changes.any { it.pressed }) {
+                    val down = event.changes.any { it.pressed }
+                    gamepadHeld.value = down
+                    if (down) {
                         bleManager.sendGamepadReport(0, 0, 0, 0, 1 shl key.gamepadButton)
                     } else {
                         bleManager.sendEmptyGamepadReport()
@@ -190,13 +200,14 @@ private fun KeyCell(
         }
     } else {
         Modifier.clickable(
-            interactionSource = remember { MutableInteractionSource() },
+            interactionSource = interactionSource,
             indication = null
         ) {
             if (hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
             handleKeyPress(key, bleManager, KCodes, onKeySent)
         }
     }
+    val pressed = if (key.isGamepad) gamepadHeld.value else tapPressed
 
     val tColor = key.textColor?.let { Color(it) } ?: TextPrimary
     val icon = keyIcon(key)
@@ -209,13 +220,23 @@ private fun KeyCell(
     Box(
         slotModifier
             .clip(keyShape)
-            .background(Color(key.backgroundColor))
+            .background(if (pressed) Color(key.backgroundColor).copy(alpha = 0.82f) else Color(key.backgroundColor))
             .background(
                 Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.09f), Color.White.copy(alpha = 0.0f))
+                    // Swapped for a darkening wash while held, so the key sinks
+                    // instead of catching more light.
+                    if (pressed) {
+                        listOf(Color.Black.copy(alpha = 0.16f), Color.Black.copy(alpha = 0.02f))
+                    } else {
+                        listOf(Color.White.copy(alpha = 0.09f), Color.White.copy(alpha = 0.0f))
+                    }
                 )
             )
-            .border(1.dp, Color(0x33FFFFFF), keyShape)
+            .border(
+                1.dp,
+                if (pressed) AccentCyan.copy(alpha = 0.65f) else Color(0x33FFFFFF),
+                keyShape
+            )
             .then(pressModifier),
         contentAlignment = Alignment.Center
     ) {

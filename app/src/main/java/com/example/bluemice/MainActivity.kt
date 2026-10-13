@@ -934,9 +934,21 @@ private fun MainScreen(
                                 IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                     Icon(Icons.Default.Menu, "Menu", tint = TextSecondary, modifier = Modifier.size(22.dp))
                                 }
-                                Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(SuccessGreen))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Connected to ${connectedName}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, modifier = Modifier.weight(1f))
+                                // Mode on top, connection under it - the pager can hold six
+                                // screens, so the old single line never told you which.
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        tabs[selectedTab].title,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = TextPrimary
+                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(Modifier.size(7.dp).clip(RoundedCornerShape(4.dp)).background(SuccessGreen))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(connectedName, fontSize = 11.sp, color = TextSecondary, maxLines = 1)
+                                    }
+                                }
                                 IconButton(onClick = {
                                     pagerSwipeLocked = !pagerSwipeLocked
                                     settingsManager.pagerSwipeLocked = pagerSwipeLocked
