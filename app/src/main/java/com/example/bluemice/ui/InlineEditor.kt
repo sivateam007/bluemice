@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -68,6 +69,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -89,6 +91,7 @@ import com.example.bluemice.HidReportBuilder
 import com.example.bluemice.model.LayoutKey
 import com.example.bluemice.model.MacroStep
 import com.example.bluemice.ui.theme.*
+import kotlinx.coroutines.delay
 
 private val KC = HidReportBuilder.KeyCodes
 
@@ -409,11 +412,23 @@ fun EditModeBar(
     onExit: () -> Unit
 ) {
     var showLoadMenu by remember { mutableStateOf(false) }
+    // Saving gave no feedback anywhere in the app, so a tapped Save looked like a
+    // dead button. Flip it to a confirmed state for a moment instead.
+    var justSaved by remember { mutableStateOf(false) }
+    LaunchedEffect(justSaved) {
+        if (justSaved) {
+            delay(1500)
+            justSaved = false
+        }
+    }
 
     // Save and Done are pinned outside the scrollable group. This bar carries
     // ~10 controls on a phone; letting them all run to the right edge is what
     // pushed Save off screen in the first place.
-    Row(Modifier.fillMaxWidth().background(CardSurface)
+    Row(Modifier.fillMaxWidth()
+        .background(CardSurface)
+        // Hairline so the bar reads as docked chrome, not a floating strip.
+        .border(1.dp, DividerColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
         .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A2A3A))
@@ -507,13 +522,26 @@ fun EditModeBar(
         }
         // Always offer Save so a deliberately blank layout can be persisted
         // (previously hidden when empty, which trapped blank layouts).
-        Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A4A2A))
-            .clickable { onSave() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Save, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(2.dp))
-                Text("Save", color = Color(0xFF4CAF50), fontSize = 11.sp)
-            }
+        Row(
+            Modifier.clip(RoundedCornerShape(Dimens.ChipRadius))
+                .background(if (justSaved) Color(0xFF1E5A32) else Color(0xFF2A4A2A))
+                .clickable { justSaved = true; onSave() }
+                .padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                if (justSaved) Icons.Default.Check else Icons.Default.Save,
+                null,
+                tint = Color(0xFF66BB6A),
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(Modifier.width(2.dp))
+            Text(
+                if (justSaved) "Saved" else "Save",
+                color = Color(0xFF66BB6A),
+                fontSize = 11.sp,
+                fontWeight = if (justSaved) FontWeight.SemiBold else FontWeight.Normal
+            )
         }
         Spacer(Modifier.width(4.dp))
         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF3A1A1A))
