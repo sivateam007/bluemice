@@ -502,7 +502,7 @@ fun MouseScreen(
         try { awaitCancellation() } finally { sensorManager.unregisterListener(listener) }
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().screenBackground()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()

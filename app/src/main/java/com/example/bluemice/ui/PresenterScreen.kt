@@ -160,9 +160,9 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().screenBackground()) {
         Column(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(
+            modifier = Modifier.fillMaxSize().padding(
                 start = 16.dp, end = 16.dp, top = 16.dp,
                 // Clear the floating EditModeBar so the last row stays tappable.
                 bottom = if (isEditing) 64.dp else 16.dp

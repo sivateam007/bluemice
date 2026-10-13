@@ -137,8 +137,8 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+    Box(Modifier.fillMaxSize().screenBackground()) {
+        Column(Modifier.fillMaxSize()
             .padding(start = 12.dp, end = 12.dp, top = 12.dp,
                 // Clear the floating EditModeBar so the last row stays tappable.
                 bottom = if (isEditing) 64.dp else 12.dp)

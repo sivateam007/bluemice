@@ -215,10 +215,9 @@ fun GamepadScreen(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().screenBackground()) {
         Column(
             modifier = Modifier.fillMaxSize()
-                .background(Brush.verticalGradient(listOf(NavyDark, Color(0xFF0C1F33))))
                 .padding(
                     start = 8.dp, end = 8.dp,
                     top = if (isLandscape) 4.dp else 8.dp,

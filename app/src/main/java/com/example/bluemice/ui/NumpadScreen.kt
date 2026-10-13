@@ -141,8 +141,8 @@ fun NumpadScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutManag
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().background(bg)
+    Box(Modifier.fillMaxSize().screenBackground()) {
+        Column(Modifier.fillMaxSize()
             .padding(start = 8.dp, end = 8.dp, top = 8.dp,
                 // Clear the floating EditModeBar so the last row stays tappable.
                 bottom = if (isEditing) 64.dp else 8.dp)

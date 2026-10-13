@@ -157,9 +157,9 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
         focusRequester.requestFocus()
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().screenBackground()) {
         Column(
-            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+            Modifier.fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(
                     start = 6.dp, end = 6.dp, top = 6.dp,
