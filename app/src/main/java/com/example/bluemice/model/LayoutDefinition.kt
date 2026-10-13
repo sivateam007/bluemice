@@ -763,26 +763,42 @@ object PredefinedLayouts {
         ))
     ), "gamepad")
 
-    /** Mirrors the old presenter sections: nav, slide jumps, playback, extras. */
+    /**
+     * Presenter remote.
+     *
+     * You press Next about ninety per cent of the time, so Next is the biggest
+     * thing on the screen: half again as wide as Prev and 120dp tall, taking the
+     * full row between them. Everything else drops to a 48dp grid of short labels
+     * underneath - slide jumps, playback, then light and power - and all three
+     * grid rows share one 12-unit split so they line up column for column.
+     *
+     * Play, Pause and Brightness used to be wired to Next-Track, Fast-Forward and
+     * Copy; the labels and the codes disagreed. They now send what they say.
+     */
     val PRESENTER_DEFAULT = LayoutDefinition("Presenter Default", listOf(
+        // R1 - hero. Next is 50% wider than Prev because Next is the one you use.
         LayoutRow(listOf(
-            LayoutKey("Prev", keyCode = 0x50.toByte(), width = 1.5f),
-            LayoutKey("Next", keyCode = 0x4F.toByte(), width = 1.5f),
+            LayoutKey("Prev", keyCode = 0x50, width = 4.8f, height = 2.5f, backgroundColor = 0xFF2A3A4A),
+            LayoutKey("Next", keyCode = 0x4F, width = 7.2f, height = 2.5f, backgroundColor = 0xFF1A5A52)
         )),
+        // R2 - slide jumps, plus PowerPoint's B key to blank the screen.
         LayoutRow(listOf(
-            LayoutKey("Start", keyCode = 0x4E.toByte()),
-            LayoutKey("End", keyCode = 0x4D.toByte()),
+            LayoutKey("Start", keyCode = 0x4E),
+            LayoutKey("End", keyCode = 0x4D),
+            LayoutKey("Esc", keyCode = 0x29),
+            LayoutKey("Black", keyCode = 0x05, backgroundColor = 0xFF3A2A2A)
         )),
+        // R3 - playback. F11 is the one that actually toggles full screen.
         LayoutRow(listOf(
-            LayoutKey("Play", keyCode = 0xB5.toByte(), width = 1.3f),
-            LayoutKey("Pause", keyCode = 0xB3.toByte(), width = 1.3f),
-            LayoutKey("F11", keyCode = 0x44.toByte()),
+            LayoutKey("Play", keyCode = 0xB0.toByte()),
+            LayoutKey("Pause", keyCode = 0xB1.toByte()),
+            LayoutKey("F11", keyCode = 0x44, backgroundColor = 0xFF2A3A2A)
         )),
+        // R4 - light and power.
         LayoutRow(listOf(
-            LayoutKey("Esc", keyCode = 0x29.toByte()),
-            LayoutKey("FullScrn", keyCode = 0x77.toByte()),
-            LayoutKey("Bright", keyCode = 0x7C.toByte()),
-            LayoutKey("Power", keyCode = 0x66.toByte()),
+            LayoutKey("Br−", consumerCode = 0x0070, backgroundColor = 0xFF2A2A4A),
+            LayoutKey("Br+", consumerCode = 0x006F, backgroundColor = 0xFF2A2A4A),
+            LayoutKey("Power", keyCode = 0x66, backgroundColor = 0xFF4A2A2A)
         ))
     ), "presenter")
 

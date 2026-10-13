@@ -64,35 +64,6 @@ import com.example.bluemice.model.LayoutKey
 import com.example.bluemice.model.LayoutRow
 import com.example.bluemice.ui.theme.*
 
-private data class PKey(
-    val label: String,
-    val icon: ImageVector,
-    val code: Byte,
-    val big: Boolean = false
-)
-
-private val navKeys = listOf(
-    PKey("Prev", Icons.Default.ArrowBack, 0x50.toByte()),
-    PKey("Next", Icons.Default.ArrowForward, 0x4F.toByte())
-)
-
-private val slideKeys = listOf(
-    PKey("Start", Icons.Default.FirstPage, 0x4E.toByte()),
-    PKey("End", Icons.Default.LastPage, 0x4D.toByte())
-)
-
-private val actionKeys = listOf(
-    PKey("Play", Icons.Default.PlayArrow, 0xB5.toByte()),
-    PKey("Pause", Icons.Default.Pause, 0xB3.toByte())
-)
-
-private val extraKeys = listOf(
-    PKey("FullScrn", Icons.Default.OpenInFull, 0x77.toByte()),
-    PKey("Esc", Icons.Default.CloseFullscreen, 0x29.toByte()),
-    PKey("Bright", Icons.Default.BrightnessHigh, 0x7C.toByte()),
-    PKey("Power", Icons.Default.PowerSettingsNew, 0x66.toByte())
-)
-
 @Composable
 fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutManager: LayoutManager? = null) {
     var laserActive by remember { mutableStateOf(false) }
@@ -162,11 +133,17 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
 
     Box(Modifier.fillMaxSize().screenBackground()) {
         Column(
+            // Padding goes outside the scroll container so the inset stays put while
+            // content moves under it. Live mode needs to scroll at all: the layout
+            // plus the 100dp laser pad is taller than a landscape viewport, so the
+            // bottom rows were simply clipped off and unreachable. Edit mode keeps
+            // its own inner scroll instead - two nested vertical scrollables throw
+            // an infinity-constraint error.
             modifier = Modifier.fillMaxSize().padding(
                 start = 16.dp, end = 16.dp, top = 16.dp,
                 // Clear the floating EditModeBar so the last row stays tappable.
                 bottom = if (isEditing) 64.dp else 16.dp
-            ),
+            ).then(if (isEditing) Modifier else Modifier.verticalScroll(rememberScrollState())),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             ScreenHeader(title = "Presenter", subtitle = "Slides · laser · navigation") {
@@ -354,30 +331,3 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
     }
 }
 
-@Composable
-private fun PresenterButton(key: PKey, modifier: Modifier = Modifier, bleManager: BleHidManager, small: Boolean = false, onCapture: ((LayoutKey) -> Unit)? = null) {
-    val capturedKey = remember(key.label, key.code) {
-        LayoutKey(label = key.label, keyCode = key.code)
-    }
-    Box(
-        modifier = modifier.clip(RoundedCornerShape(10.dp)).background(SurfaceDark)
-            .then(
-                if (onCapture != null) Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onCapture(capturedKey) }
-                else Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { bleManager.sendKeyPress(0, key.code) }
-            )
-            .padding(vertical = if (small) 10.dp else 14.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(key.icon, key.label, tint = Periwinkle, modifier = Modifier.size(if (small) 20.dp else 28.dp))
-            Spacer(Modifier.height(4.dp))
-            Text(key.label, color = TextPrimary.copy(alpha = 0.8f), fontSize = if (small) 11.sp else 13.sp, textAlign = TextAlign.Center)
-        }
-        if (onCapture != null) {
-            Box(Modifier.matchParentSize().clip(RoundedCornerShape(10.dp)).background(Color(0x2200E5FF)),
-                contentAlignment = Alignment.TopEnd) {
-                Icon(Icons.Default.Add, null, tint = Color(0xFF00E5FF), modifier = Modifier.size(16.dp).padding(2.dp))
-            }
-        }
-    }
-}
