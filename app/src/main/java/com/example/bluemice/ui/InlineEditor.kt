@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -1844,7 +1845,10 @@ fun TemplatePickerDialog(
         title = { Text("Create Layout", color = TextPrimary) },
         containerColor = CardSurface,
         text = {
-            Column {
+            // Twenty keyboard templates plus the blank row is taller than a phone
+            // in landscape, and AlertDialog does not scroll for us - cap and scroll
+            // so nothing ends up below the fold and unreachable.
+            Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
                 Text("Choose a template to start with:", color = TextSecondary, fontSize = 12.sp)
                 Spacer(Modifier.height(8.dp))
                 templates.forEach { t ->

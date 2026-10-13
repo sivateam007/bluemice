@@ -74,7 +74,18 @@ data class Mk(val lbl: String, val code: Byte, val bg: Color = Color(0xFF2D2D2D)
 
 @Composable
 fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutManager: LayoutManager? = null, settingsManager: SettingsManager? = null) {
-    val currentLayout = layoutManager?.getCurrentLayout("media")
+    // LayoutManager is backed by SharedPreferences, which Compose cannot observe,
+    // so switching or saving a layout only shows up once this counter changes.
+    var layoutVersion by remember { mutableIntStateOf(0) }
+    var currentLayoutName by remember {
+        mutableStateOf(layoutManager?.getCurrentLayoutName("media") ?: "")
+    }
+    val layoutNames = remember(layoutVersion) {
+        layoutManager?.getAllLayouts("media")?.map { it.name } ?: emptyList()
+    }
+    val currentLayout = remember(layoutVersion, layoutManager) {
+        layoutManager?.getCurrentLayout("media")
+    }
     val hasCustomKeys = currentLayout != null && currentLayout.rows.any { it.keys.isNotEmpty() }
 
     var isEditing by remember { mutableStateOf(false) }
@@ -135,6 +146,9 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
             lm.saveCustomLayout(LayoutDefinition(layoutName, rows.map { LayoutRow(it.toList()) }, "media"))
             lm.setCurrentLayoutName("media", layoutName)
         }
+        // Repaint the live deck from what was just written.
+        currentLayoutName = layoutManager?.getCurrentLayoutName("media") ?: currentLayoutName
+        layoutVersion++
     }
 
     Box(Modifier.fillMaxSize().screenBackground()) {
@@ -150,6 +164,29 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
                     Icon(Icons.Default.Edit, null, tint = if (isEditing) Color(0xFF4CAF50) else TextSecondary, modifier = Modifier.size(22.dp))
                 }
             }
+
+            // Which layout is live, and the one-tap way to make another.
+            LayoutBar(
+                mode = "media",
+                currentName = currentLayoutName,
+                names = layoutNames,
+                onSelect = { name ->
+                    layoutManager?.setCurrentLayoutName("media", name)
+                    currentLayoutName = name
+                    layoutManager?.getCurrentLayout("media")?.rows?.let { rows ->
+                        editRows = rows.map { it.keys.toMutableList() }
+                    }
+                    layoutVersion++
+                },
+                onCreate = { template ->
+                    layoutManager?.createLayout("media", template)?.let { created ->
+                        currentLayoutName = created.name
+                        editRows = created.rows.map { it.keys.toMutableList() }
+                        layoutVersion++
+                        isEditing = true
+                    }
+                }
+            )
 
             // Framed surface - the same one the gamepad screen uses.
             ScreenPanel(Modifier.padding(bottom = 8.dp)) {

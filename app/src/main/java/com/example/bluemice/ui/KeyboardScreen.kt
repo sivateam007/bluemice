@@ -85,7 +85,18 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
     var language by remember { mutableStateOf(KeyboardLanguageCatalog.byLocale(settingsManager?.selectedLanguage ?: "en")) }
     var showLanguagePicker by remember { mutableStateOf(false) }
 
-    val currentLayout = layoutManager?.getCurrentLayout("keyboard")
+    // LayoutManager is backed by SharedPreferences, which Compose cannot observe,
+    // so switching or saving a layout only shows up once this counter changes.
+    var layoutVersion by remember { mutableIntStateOf(0) }
+    var currentLayoutName by remember {
+        mutableStateOf(layoutManager?.getCurrentLayoutName("keyboard") ?: "")
+    }
+    val layoutNames = remember(layoutVersion) {
+        layoutManager?.getAllLayouts("keyboard")?.map { it.name } ?: emptyList()
+    }
+    val currentLayout = remember(layoutVersion, layoutManager) {
+        layoutManager?.getCurrentLayout("keyboard")
+    }
     val hasCustomKeys = currentLayout != null && currentLayout.rows.any { it.keys.isNotEmpty() }
 
     // Inline editing state
@@ -106,6 +117,9 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
             lm.saveCustomLayout(LayoutDefinition(layoutName, rows.map { LayoutRow(it.toList()) }, "keyboard"))
             lm.setCurrentLayoutName("keyboard", layoutName)
         }
+        // Repaint the live board from what was just written.
+        currentLayoutName = layoutManager?.getCurrentLayoutName("keyboard") ?: currentLayoutName
+        layoutVersion++
     }
 
     val context = LocalContext.current
@@ -172,6 +186,29 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
             ScreenHeader(
                 title = "Keyboard",
                 subtitle = if (keyboardMode == "language") "Language board" else "Layout keys"
+            )
+
+            // Which layout is live, and the one-tap way to make another.
+            LayoutBar(
+                mode = "keyboard",
+                currentName = currentLayoutName,
+                names = layoutNames,
+                onSelect = { name ->
+                    layoutManager?.setCurrentLayoutName("keyboard", name)
+                    currentLayoutName = name
+                    layoutManager?.getCurrentLayout("keyboard")?.rows?.let { rows ->
+                        editRows = rows.map { it.keys.toMutableList() }
+                    }
+                    layoutVersion++
+                },
+                onCreate = { template ->
+                    layoutManager?.createLayout("keyboard", template)?.let { created ->
+                        currentLayoutName = created.name
+                        editRows = created.rows.map { it.keys.toMutableList() }
+                        layoutVersion++
+                        isEditing = true
+                    }
+                }
             )
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

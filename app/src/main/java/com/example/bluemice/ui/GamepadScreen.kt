@@ -147,7 +147,18 @@ fun GamepadScreen(
         buttons = if (pressed) buttons or contribution else buttons and contribution.inv()
     }
 
-    val currentLayout = layoutManager?.getCurrentLayout("gamepad")
+    // LayoutManager is backed by SharedPreferences, which Compose cannot observe,
+    // so switching or saving a layout only shows up once this counter changes.
+    var layoutVersion by remember { mutableIntStateOf(0) }
+    var currentLayoutName by remember {
+        mutableStateOf(layoutManager?.getCurrentLayoutName("gamepad") ?: "")
+    }
+    val layoutNames = remember(layoutVersion) {
+        layoutManager?.getAllLayouts("gamepad")?.map { it.name } ?: emptyList()
+    }
+    val currentLayout = remember(layoutVersion, layoutManager) {
+        layoutManager?.getCurrentLayout("gamepad")
+    }
     val hasCustomKeys = currentLayout != null && currentLayout.rows.any { it.keys.isNotEmpty() }
 
     var isEditing by remember { mutableStateOf(false) }
@@ -208,6 +219,9 @@ fun GamepadScreen(
             lm.saveCustomLayout(LayoutDefinition(layoutName, rows.map { LayoutRow(it.toList()) }, "gamepad"))
             lm.setCurrentLayoutName("gamepad", layoutName)
         }
+        // Repaint the live pad from what was just written.
+        currentLayoutName = layoutManager?.getCurrentLayoutName("gamepad") ?: currentLayoutName
+        layoutVersion++
     }
 
     val configuration = LocalConfiguration.current
@@ -255,6 +269,29 @@ fun GamepadScreen(
                     Icon(Icons.Default.Edit, null, tint = if (isEditing) CyanNeon else TextSecondary, modifier = Modifier.size(20.dp))
                 }
             }
+
+            // Which layout is live, and the one-tap way to make another.
+            LayoutBar(
+                mode = "gamepad",
+                currentName = currentLayoutName,
+                names = layoutNames,
+                onSelect = { name ->
+                    layoutManager?.setCurrentLayoutName("gamepad", name)
+                    currentLayoutName = name
+                    layoutManager?.getCurrentLayout("gamepad")?.rows?.let { rows ->
+                        editRows = rows.map { it.keys.toMutableList() }
+                    }
+                    layoutVersion++
+                },
+                onCreate = { template ->
+                    layoutManager?.createLayout("gamepad", template)?.let { created ->
+                        currentLayoutName = created.name
+                        editRows = created.rows.map { it.keys.toMutableList() }
+                        layoutVersion++
+                        isEditing = true
+                    }
+                }
+            )
 
             // One framed panel holds the pad in both orientations - it keeps the grid
             // aligned and gives portrait and landscape the same surface to sit in.

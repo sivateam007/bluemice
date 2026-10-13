@@ -2,7 +2,9 @@ package com.example.bluemice.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -12,12 +14,24 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -184,4 +198,106 @@ fun HeaderAction(
         contentAlignment = Alignment.Center,
         content = content
     )
+}
+
+/**
+ * Layout switcher that sits directly under [ScreenHeader] on every key-based
+ * screen.
+ *
+ * Creating a layout used to be something you could only discover inside Edit
+ * mode, which meant most people never found it. This puts both halves on the
+ * surface: the active layout's name opens a list of everything saved for the
+ * mode, and **+ New** runs the template picker, so a new layout is one visible
+ * tap away.
+ *
+ * The screen owns [currentName], [names] and the rows because LayoutManager is
+ * backed by SharedPreferences, which Compose cannot observe - bumping the
+ * screen's version state is what actually makes a switch appear.
+ */
+@Composable
+fun LayoutBar(
+    mode: String,
+    currentName: String,
+    names: List<String>,
+    onSelect: (String) -> Unit,
+    onCreate: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    var showTemplates by remember { mutableStateOf(false) }
+    val tap = remember { MutableInteractionSource() }
+
+    Row(
+        modifier.fillMaxWidth().padding(bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier.weight(1f)
+                .height(Dimens.TouchTarget)
+                .clip(RoundedCornerShape(Dimens.ControlRadius))
+                .background(CardSurface)
+                .border(1.dp, CardBorder, RoundedCornerShape(Dimens.ControlRadius))
+                .clickable(tap, indication = null) { menuOpen = true }
+                .padding(horizontal = 10.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    currentName.ifEmpty { "Layout" },
+                    color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                    maxLines = 1, modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(4.dp))
+                Icon(Icons.Default.ArrowDropDown, "Switch layout",
+                    tint = TextSecondary, modifier = Modifier.size(18.dp))
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                if (names.isEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text("No saved layouts yet", fontSize = 12.sp, color = TextSecondary) },
+                        onClick = { menuOpen = false }, enabled = false)
+                }
+                names.forEach { name ->
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (name == currentName) {
+                                    Icon(Icons.Default.Check, null, tint = AccentCyan,
+                                        modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                }
+                                Text(name, fontSize = 12.sp, maxLines = 1)
+                            }
+                        },
+                        onClick = { menuOpen = false; if (name != currentName) onSelect(name) }
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.width(8.dp))
+
+        Box(
+            Modifier.height(Dimens.TouchTarget)
+                .clip(RoundedCornerShape(Dimens.ControlRadius))
+                .background(AccentCyan)
+                .clickable(tap, indication = null) { showTemplates = true }
+                .padding(horizontal = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Add, null, tint = Color(0xFF062033), modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(3.dp))
+                Text("New", color = Color(0xFF062033), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+
+    if (showTemplates) {
+        TemplatePickerDialog(
+            mode = mode,
+            onSelect = { template -> showTemplates = false; onCreate(template) },
+            onDismiss = { showTemplates = false }
+        )
+    }
 }

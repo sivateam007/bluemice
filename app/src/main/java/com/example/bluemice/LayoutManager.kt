@@ -158,6 +158,28 @@ class LayoutManager(context: Context) {
         return true
     }
 
+    /**
+     * Creates and activates a brand new layout for [mode], seeded from the
+     * predefined layout called [templateName] - or blank when [templateName] is
+     * empty, which is what the template picker's "Start Blank" row passes.
+     *
+     * The copy is given a name that does not collide, so picking a template
+     * never overwrites the template itself; picking the same one twice gives
+     * you a second, independently editable layout.
+     */
+    fun createLayout(mode: String, templateName: String): LayoutDefinition {
+        val template = PredefinedLayouts.all.find { it.mode == mode && it.name == templateName }
+        val rows = template?.rows ?: emptyList()
+        val base = template?.name ?: "New Layout"
+        var name = base
+        var i = 2
+        while (!isNameAvailable(mode, name)) { name = "$base $i"; i++ }
+        val layout = LayoutDefinition(name, rows, mode)
+        saveCustomLayout(layout)
+        setCurrentLayoutName(mode, name)
+        return layout
+    }
+
     private fun serializeLayout(l: LayoutDefinition): JSONObject {
         val rows = JSONArray()
         l.rows.forEach { row ->

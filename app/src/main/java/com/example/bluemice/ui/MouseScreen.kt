@@ -145,7 +145,18 @@ fun MouseScreen(
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val currentLayout = layoutManager?.getCurrentLayout("mouse")
+    // LayoutManager is backed by SharedPreferences, which Compose cannot observe,
+    // so switching or saving a layout only shows up once this counter changes.
+    var layoutVersion by remember { mutableIntStateOf(0) }
+    var currentLayoutName by remember {
+        mutableStateOf(layoutManager?.getCurrentLayoutName("mouse") ?: "")
+    }
+    val layoutNames = remember(layoutVersion) {
+        layoutManager?.getAllLayouts("mouse")?.map { it.name } ?: emptyList()
+    }
+    val currentLayout = remember(layoutVersion, layoutManager) {
+        layoutManager?.getCurrentLayout("mouse")
+    }
     val hasCustomKeys = currentLayout != null && currentLayout.rows.any { it.keys.isNotEmpty() }
 
     // Inline editing state
@@ -209,6 +220,9 @@ fun MouseScreen(
             lm.saveCustomLayout(LayoutDefinition(layoutName, rows.map { LayoutRow(it.toList()) }, "mouse"))
             lm.setCurrentLayoutName("mouse", layoutName)
         }
+        // Repaint the live pad from what was just written.
+        currentLayoutName = layoutManager?.getCurrentLayoutName("mouse") ?: currentLayoutName
+        layoutVersion++
     }
 
     // ------------------------------------------------------------- touchpad
@@ -545,6 +559,30 @@ fun MouseScreen(
                     Icon(Icons.Default.Edit, null, tint = if (isEditing) Color(0xFF4CAF50) else TextSecondary, modifier = Modifier.size(22.dp))
                 }
             }
+
+            // Which layout is live, and the one-tap way to make another.
+            LayoutBar(
+                mode = "mouse",
+                currentName = currentLayoutName,
+                names = layoutNames,
+                onSelect = { name ->
+                    layoutManager?.setCurrentLayoutName("mouse", name)
+                    currentLayoutName = name
+                    layoutManager?.getCurrentLayout("mouse")?.rows?.let { rows ->
+                        editRows = rows.map { it.keys.toMutableList() }
+                    }
+                    layoutVersion++
+                },
+                onCreate = { template ->
+                    layoutManager?.createLayout("mouse", template)?.let { created ->
+                        currentLayoutName = created.name
+                        editRows = created.rows.map { it.keys.toMutableList() }
+                        layoutVersion++
+                        isEditing = true
+                        onEditModeToggle(true)
+                    }
+                }
+            )
 
             // Collapsible keyboard input
             AnimatedVisibility(visible = showKeyboard) {

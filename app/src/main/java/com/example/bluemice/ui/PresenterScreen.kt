@@ -68,7 +68,18 @@ import com.example.bluemice.ui.theme.*
 fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutManager: LayoutManager? = null) {
     var laserActive by remember { mutableStateOf(false) }
 
-    val currentLayout = layoutManager?.getCurrentLayout("presenter")
+    // LayoutManager is backed by SharedPreferences, which Compose cannot observe,
+    // so switching or saving a layout only shows up once this counter changes.
+    var layoutVersion by remember { mutableIntStateOf(0) }
+    var currentLayoutName by remember {
+        mutableStateOf(layoutManager?.getCurrentLayoutName("presenter") ?: "")
+    }
+    val layoutNames = remember(layoutVersion) {
+        layoutManager?.getAllLayouts("presenter")?.map { it.name } ?: emptyList()
+    }
+    val currentLayout = remember(layoutVersion, layoutManager) {
+        layoutManager?.getCurrentLayout("presenter")
+    }
     val hasCustomKeys = currentLayout != null && currentLayout.rows.any { it.keys.isNotEmpty() }
 
     var isEditing by remember { mutableStateOf(false) }
@@ -129,6 +140,9 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
             lm.saveCustomLayout(LayoutDefinition(layoutName, rows.map { LayoutRow(it.toList()) }, "presenter"))
             lm.setCurrentLayoutName("presenter", layoutName)
         }
+        // Repaint the live deck from what was just written.
+        currentLayoutName = layoutManager?.getCurrentLayoutName("presenter") ?: currentLayoutName
+        layoutVersion++
     }
 
     Box(Modifier.fillMaxSize().screenBackground()) {
@@ -151,6 +165,29 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
                     Icon(Icons.Default.Edit, null, tint = if (isEditing) Color(0xFF4CAF50) else TextSecondary, modifier = Modifier.size(22.dp))
                 }
             }
+
+            // Which layout is live, and the one-tap way to make another.
+            LayoutBar(
+                mode = "presenter",
+                currentName = currentLayoutName,
+                names = layoutNames,
+                onSelect = { name ->
+                    layoutManager?.setCurrentLayoutName("presenter", name)
+                    currentLayoutName = name
+                    layoutManager?.getCurrentLayout("presenter")?.rows?.let { rows ->
+                        editRows = rows.map { it.keys.toMutableList() }
+                    }
+                    layoutVersion++
+                },
+                onCreate = { template ->
+                    layoutManager?.createLayout("presenter", template)?.let { created ->
+                        currentLayoutName = created.name
+                        editRows = created.rows.map { it.keys.toMutableList() }
+                        layoutVersion++
+                        isEditing = true
+                    }
+                }
+            )
 
             // Framed surface - the same one the gamepad screen uses.
             ScreenPanel(Modifier.padding(bottom = 8.dp)) {
