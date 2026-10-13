@@ -42,9 +42,12 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.BluetoothDisabled
+import androidx.compose.material.icons.filled.NavigateBefore
+import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Laptop
@@ -989,17 +992,48 @@ private fun MainScreen(
                                 }
                                 // Mode on top, connection under it - the pager can hold six
                                 // screens, so the old single line never told you which.
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        tabs[selectedTab].title,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = TextPrimary
-                                    )
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(Modifier.size(7.dp).clip(RoundedCornerShape(4.dp)).background(SuccessGreen))
-                                        Spacer(Modifier.width(6.dp))
-                                        Text(connectedName, fontSize = 11.sp, color = TextSecondary, maxLines = 1)
+                                // Chevrons give one-tap paging; tapping the name opens the
+                                // drawer. Previously the hamburger and a hidden swipe were
+                                // the only way to reach another screen.
+                                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                                    IconButton(
+                                        onClick = { selectedTab-- },
+                                        enabled = selectedTab > 0,
+                                        modifier = Modifier.size(34.dp)
+                                    ) {
+                                        Icon(Icons.Default.NavigateBefore, "Previous mode",
+                                            tint = TextSecondary, modifier = Modifier.size(24.dp))
+                                    }
+                                    Column(
+                                        Modifier.weight(1f)
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) { scope.launch { drawerState.open() } }
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                tabs[selectedTab].title,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = TextPrimary
+                                            )
+                                            Icon(Icons.Default.ArrowDropDown, null,
+                                                tint = TextSecondary, modifier = Modifier.size(18.dp))
+                                        }
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(Modifier.size(7.dp).clip(RoundedCornerShape(4.dp)).background(SuccessGreen))
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(connectedName, fontSize = 11.sp, color = TextSecondary, maxLines = 1)
+                                        }
+                                    }
+                                    IconButton(
+                                        onClick = { selectedTab++ },
+                                        enabled = selectedTab < tabs.size - 1,
+                                        modifier = Modifier.size(34.dp)
+                                    ) {
+                                        Icon(Icons.Default.NavigateNext, "Next mode",
+                                            tint = TextSecondary, modifier = Modifier.size(24.dp))
                                     }
                                 }
                                 IconButton(onClick = {
