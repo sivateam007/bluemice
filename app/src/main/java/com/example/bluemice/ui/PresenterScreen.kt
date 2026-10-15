@@ -96,6 +96,8 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
     var addTargetRow by remember { mutableIntStateOf(-1) }
     // Batch-edit mode: taps gather keys instead of opening the per-key sheet.
     var selectMode by remember { mutableStateOf(false) }
+    // Test mode: render the live pad from the working rows instead of the canvas.
+    var testMode by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val layoutHistory = remember { LayoutHistory() }
@@ -193,7 +195,12 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
 
             // Framed surface - the same one the gamepad screen uses.
             ScreenPanel(Modifier.padding(bottom = 8.dp)) {
-                if (isEditing) {
+                if (isEditing && testMode) {
+                    TestModePreview("presenter",
+                        layoutManager?.getCurrentLayoutName("presenter") ?: "Custom Presenter",
+                        editRows, bleManager,
+                        modifier = Modifier.padding(bottom = 12.dp))
+                } else if (isEditing) {
                 EditableLayoutView(
                     rows = editRows,
                     onEditKey = { ri, ki -> editRowIdx = ri; editKeyIdx = ki; editingKey = editRows[ri][ki]; showEditKeySheet = true },
@@ -305,6 +312,8 @@ fun PresenterScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMa
                                         onNewBlank = { pushUndoSnapshot(); editRows = listOf(mutableListOf<LayoutKey>(), mutableListOf<LayoutKey>()) },
                 selectMode = selectMode,
                 onToggleSelectMode = { selectMode = !selectMode },
+                testMode = testMode,
+                onToggleTestMode = { testMode = !testMode; if (testMode) selectMode = false },
                     onImport = { importLauncher.launch(arrayOf("application/json")) },
                     onExport = { exportLauncher.launch("bluemice-presenter-layout.json") },
                     canUndo = layoutHistory.undoStack.isNotEmpty(),

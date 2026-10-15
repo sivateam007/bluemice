@@ -130,6 +130,8 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
     var addTargetRow by remember { mutableIntStateOf(-1) }
     // Batch-edit mode: taps gather keys instead of opening the per-key sheet.
     var selectMode by remember { mutableStateOf(false) }
+    // Test mode: render the live pad from the working rows instead of the canvas.
+    var testMode by remember { mutableStateOf(false) }
 
     /** Appends [key] to the tapped row, falling back to the last row. */
     fun appendKey(rowIdx: Int, key: LayoutKey) {
@@ -257,7 +259,11 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
 
             // Framed surface - the same one the gamepad screen uses.
             ScreenPanel(Modifier.padding(bottom = 8.dp)) {
-                if (isEditing) {
+                if (isEditing && testMode) {
+                    TestModePreview("keyboard",
+                        layoutManager?.getCurrentLayoutName("keyboard") ?: "Custom Keyboard",
+                        editRows, bleManager)
+                } else if (isEditing) {
                 EditableLayoutView(
                     rows = editRows,
                     onEditKey = { ri, ki -> editRowIdx = ri; editKeyIdx = ki; editingKey = editRows[ri][ki]; showEditKeySheet = true },
@@ -361,6 +367,8 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
                                         onNewBlank = { pushUndoSnapshot(); editRows = listOf(mutableListOf<LayoutKey>(), mutableListOf<LayoutKey>()) },
                 selectMode = selectMode,
                 onToggleSelectMode = { selectMode = !selectMode },
+                testMode = testMode,
+                onToggleTestMode = { testMode = !testMode; if (testMode) selectMode = false },
                     onImport = { importLauncher.launch(arrayOf("application/json")) },
                     onExport = { exportLauncher.launch("layout.json") },
                     canUndo = layoutHistory.undoStack.isNotEmpty(),

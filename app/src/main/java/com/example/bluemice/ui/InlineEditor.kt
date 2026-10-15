@@ -469,6 +469,8 @@ fun EditModeBar(
     onNewBlank: () -> Unit = {},
     selectMode: Boolean = false,
     onToggleSelectMode: () -> Unit = {},
+    testMode: Boolean = false,
+    onToggleTestMode: (() -> Unit)? = null,
     canUndo: Boolean = false,
     canRedo: Boolean = false,
     onUndo: (() -> Unit)? = null,
@@ -560,6 +562,23 @@ fun EditModeBar(
                 Spacer(Modifier.width(2.dp))
                 Text(if (selectMode) "Selecting" else "Select",
                     color = if (selectMode) Color(0xFFFFCA28) else TextSecondary, fontSize = 11.sp)
+            }
+        }
+        if (onToggleTestMode != null) {
+            Spacer(Modifier.width(4.dp))
+            // Test: swap the editing canvas for the live pad, built from the
+            // working rows, so keys can be fired before leaving the editor.
+            Box(Modifier.clip(RoundedCornerShape(6.dp))
+                .background(if (testMode) Color(0xFF132A1E) else Color(0xFF2A2A3A))
+                .clickable { onToggleTestMode() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.PlayArrow, null,
+                        tint = if (testMode) Color(0xFF4CAF50) else TextSecondary,
+                        modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(2.dp))
+                    Text(if (testMode) "Testing" else "Test",
+                        color = if (testMode) Color(0xFF4CAF50) else TextSecondary, fontSize = 11.sp)
+                }
             }
         }
         if (onImport != null) {

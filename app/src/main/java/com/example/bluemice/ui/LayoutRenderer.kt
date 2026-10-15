@@ -42,6 +42,7 @@ import com.example.bluemice.BleHidManager
 import com.example.bluemice.HidReportBuilder
 import com.example.bluemice.model.LayoutDefinition
 import com.example.bluemice.model.LayoutKey
+import com.example.bluemice.model.LayoutRow
 import com.example.bluemice.ui.theme.CardSurface
 import com.example.bluemice.ui.theme.SuccessGreen
 import com.example.bluemice.ui.theme.TextPrimary
@@ -602,6 +603,49 @@ fun EmptyLayoutState(
 /* ------------------------------------------------------------------ *
  * Edit mode
  * ------------------------------------------------------------------ */
+
+/**
+ * Live pad built from the *working* rows, not the saved layout, so a designer
+ * can fire every key and confirm what it sends before leaving the editor.
+ * Every serious configurator has this (QMK's "Test Keyboard", reWASD's Apply);
+ * without it you find out a key is wrong by using the app for real.
+ */
+@Composable
+fun TestModePreview(
+    mode: String,
+    layoutName: String,
+    rows: List<MutableList<LayoutKey>>,
+    bleManager: BleHidManager,
+    modifier: Modifier = Modifier,
+    flexibleRows: Boolean = false,
+    widgetSlots: Map<String, @Composable (Modifier) -> Unit> = emptyMap(),
+    onStickTouch: (String, Float, Float, Boolean) -> Unit = { _, _, _, _ -> }
+) {
+    val layout = remember(rows, layoutName) {
+        LayoutDefinition(layoutName.ifEmpty { "Preview" }, rows.map { LayoutRow(it.toList()) }, mode)
+    }
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFF132A1E)).padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Check, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Test mode \u00B7 taps send real input",
+                color = Color(0xFF4CAF50), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        }
+        if (rows.all { it.isEmpty() }) {
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                .background(CardSurface)
+                .border(1.dp, Color(0x38FFFFFF), RoundedCornerShape(8.dp))
+                .padding(vertical = 20.dp), contentAlignment = Alignment.Center) {
+                Text("Add keys, then test them here", color = TextSecondary, fontSize = 12.sp)
+            }
+        } else {
+            CustomLayoutView(layout, bleManager, flexibleRows = flexibleRows,
+                widgetSlots = widgetSlots, onStickTouch = onStickTouch)
+        }
+    }
+}
 
 @Composable
 fun EditableLayoutView(

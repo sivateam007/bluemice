@@ -102,6 +102,8 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
     var addTargetRow by remember { mutableIntStateOf(-1) }
     // Batch-edit mode: taps gather keys instead of opening the per-key sheet.
     var selectMode by remember { mutableStateOf(false) }
+    // Test mode: render the live pad from the working rows instead of the canvas.
+    var testMode by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val layoutHistory = remember { LayoutHistory() }
@@ -192,7 +194,11 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
 
             // Framed surface - the same one the gamepad screen uses.
             ScreenPanel(Modifier.padding(bottom = 8.dp)) {
-                if (isEditing) {
+                if (isEditing && testMode) {
+                    TestModePreview("media",
+                        layoutManager?.getCurrentLayoutName("media") ?: "Custom Media",
+                        editRows, bleManager)
+                } else if (isEditing) {
                 EditableLayoutView(
                     rows = editRows,
                     onEditKey = { ri, ki -> editRowIdx = ri; editKeyIdx = ki; editingKey = editRows[ri][ki]; showEditKeySheet = true },
@@ -284,6 +290,8 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
                                         onNewBlank = { pushUndoSnapshot(); editRows = listOf(mutableListOf<LayoutKey>(), mutableListOf<LayoutKey>()) },
                 selectMode = selectMode,
                 onToggleSelectMode = { selectMode = !selectMode },
+                testMode = testMode,
+                onToggleTestMode = { testMode = !testMode; if (testMode) selectMode = false },
                     onImport = { importLauncher.launch(arrayOf("application/json")) },
                     onExport = { exportLauncher.launch("bluemice-media-layout.json") },
                     canUndo = layoutHistory.undoStack.isNotEmpty(),

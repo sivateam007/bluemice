@@ -175,6 +175,8 @@ fun MouseScreen(
     var addTargetRow by remember { mutableIntStateOf(-1) }
     // Batch-edit mode: taps gather keys instead of opening the per-key sheet.
     var selectMode by remember { mutableStateOf(false) }
+    // Test mode: render the live pad from the working rows instead of the canvas.
+    var testMode by remember { mutableStateOf(false) }
     var pickerTargetRow by remember { mutableIntStateOf(0) }
     var pickerTargetPos by remember { mutableIntStateOf(0) }
 
@@ -630,7 +632,13 @@ fun MouseScreen(
             // Custom keys section (replaces hardcoded elements during edit)
             // Framed surface, weighted so the touchpad row can flex to fill it.
             ScreenPanel(Modifier.weight(1f)) {
-                if (isEditing) {
+                if (isEditing && testMode) {
+                    Spacer(Modifier.height(6.dp))
+                    TestModePreview("mouse",
+                        layoutManager?.getCurrentLayoutName("mouse") ?: "Custom Mouse",
+                        editRows, bleManager,
+                        widgetSlots = widgetSlots, flexibleRows = true)
+                } else if (isEditing) {
                 Spacer(Modifier.height(6.dp))
                 EditableLayoutView(
                     rows = editRows,
@@ -735,6 +743,8 @@ fun MouseScreen(
                     onNewBlank = { pushUndoSnapshot(); editRows = listOf(mutableListOf<LayoutKey>(), mutableListOf<LayoutKey>()) },
                 selectMode = selectMode,
                 onToggleSelectMode = { selectMode = !selectMode },
+                testMode = testMode,
+                onToggleTestMode = { testMode = !testMode; if (testMode) selectMode = false },
                     onImport = { importLauncher.launch(arrayOf("application/json")) },
                     onExport = { exportLauncher.launch("bluemice-mouse-layout.json") },
                     canUndo = layoutHistory.undoStack.isNotEmpty(),
