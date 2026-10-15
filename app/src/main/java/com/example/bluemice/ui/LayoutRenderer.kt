@@ -878,21 +878,6 @@ fun EditableLayoutView(
                                         )
                                     },
                                     contentAlignment = Alignment.Center) {
-                                    // Inline colour dot: shows the key's face colour at a
-                                    // glance and opens a quick palette on tap. This is the
-                                    // "I want it blue" affordance that was missing — the
-                                    // full editor buries colour three taps deep.
-                                    if (!isSpacer) {
-                                        Box(Modifier.align(Alignment.TopStart)
-                                            .padding(start = 3.dp, top = 3.dp)
-                                            .size(13.dp)
-                                            .clip(CircleShape)
-                                            .background(bgColor)
-                                            .border(1.dp, Color.White.copy(alpha = 0.55f), CircleShape)
-                                            .clickable {
-                                                quickColorKey = if (quickColorKey == ri to ki) null else (ri to ki)
-                                            })
-                                    }
                                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF202030))
@@ -933,6 +918,20 @@ fun EditableLayoutView(
                                         Spacer(Modifier.height(2.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
                                             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                                            // Colour chip: the key's own face colour, so the
+                                            // preview is the key itself, and tapping it opens
+                                            // the quick palette. It leads the row because the
+                                            // row is the only strip of the cell that is always
+                                            // free - a corner dot landed on the move arrows.
+                                            if (!isSpacer) {
+                                                Box(Modifier.size(16.dp).clip(CircleShape)
+                                                    .background(bgColor)
+                                                    .border(1.dp, Color.White.copy(alpha = 0.55f), CircleShape)
+                                                    .clickable {
+                                                        quickColorKey = if (quickColorKey == ri to ki) null else (ri to ki)
+                                                    })
+                                                Spacer(Modifier.width(5.dp))
+                                            }
                                             Box(Modifier.size(22.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF2A2A4A))
                                                 .clickable { pushU(); onResizeKey(ri, ki, (key.width - 0.5f).coerceAtLeast(0.5f)) }, contentAlignment = Alignment.Center) {
                                                 Text("\u2212", color = Color(0xFF00E5FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
