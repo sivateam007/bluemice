@@ -37,6 +37,17 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean("fullscreen", false)
         set(v) = prefs.edit().putBoolean("fullscreen", v).apply()
 
+    /**
+     * Alpha of the gamepad pad while it is in play mode, 0.2f..1f.
+     *
+     * A pad drawn at full opacity over a game you are trying to see through it
+     * is useless; PPSSPP and DraStic both ship this as a first-class control
+     * because it is the difference between "overlay" and "obstruction".
+     */
+    var gamepadPadOpacity: Float
+        get() = prefs.getFloat("gamepad_pad_opacity", 1f).coerceIn(0.2f, 1f)
+        set(v) = prefs.edit().putFloat("gamepad_pad_opacity", v.coerceIn(0.2f, 1f)).apply()
+
     var airMouseEnabled: Boolean
         get() = prefs.getBoolean("air_mouse", false)
         set(v) = prefs.edit().putBoolean("air_mouse", v).apply()

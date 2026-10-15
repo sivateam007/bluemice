@@ -104,6 +104,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -476,6 +477,26 @@ private fun MainScreen(
     var importResult by remember { mutableStateOf<String?>(null) }
     var renameTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
     var deleteTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
+    // Dismissing play mode. Kept separate from the fullscreen setting so the
+    // chevron and the header's expand button are a symmetric in/out pair and
+    // neither of them has to reach into the drawer to work.
+    var gamepadPlayHidden by remember { mutableStateOf(false) }
+    // Read the real device orientation rather than the "force landscape"
+    // preference - play mode must follow how the phone is actually held.
+    val actualOrientation = LocalConfiguration.current.orientation
+    // `isConnected` is part of the condition, not an oversight: the connection
+    // and advertising screens live behind the same pager, and with no top bar
+    // they would have no hamburger and no way out.
+    val gamepadPlayAvailable =
+        isFullScreen && actualOrientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE &&
+            selectedTab == 2 && isConnected
+    val gamepadPlayMode = gamepadPlayAvailable && !gamepadPlayHidden
+    // Leaving the conditions clears the dismissal, so returning to landscape +
+    // Fullscreen + the gamepad starts you back in play mode instead of stuck
+    // on a dismissal you made three tabs ago.
+    LaunchedEffect(gamepadPlayAvailable) {
+        if (!gamepadPlayAvailable) gamepadPlayHidden = false
+    }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -575,7 +596,7 @@ private fun MainScreen(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        gesturesEnabled = !pagerSwipeLocked,
+        gesturesEnabled = !pagerSwipeLocked && !gamepadPlayMode,
         scrimColor = Overlay,
         drawerContent = {
             ModalDrawerSheet(
@@ -978,6 +999,11 @@ private fun MainScreen(
     ) {
         Scaffold(
             topBar = {
+                // Play mode drops the activity bar as well. Without this the pad
+                // would still sit under the hamburger, mode chevrons and the
+                // disconnect button - which on a landscape phone is most of the
+                // viewport gone before a single key is drawn.
+                if (!gamepadPlayMode) {
                 Column(Modifier.statusBarsPadding()) {
                     if (isConnected) {
                         Surface(color = NavyPrimary, shadowElevation = 8.dp) {
@@ -1093,11 +1119,19 @@ private fun MainScreen(
                         }
                     }
                 }
+                }
             }
         ) { padding ->
             // Same backdrop as the six control screens, so the app opens on the
             // same visual language instead of a plain flat background.
-            Box(modifier = Modifier.fillMaxSize().padding(padding).screenBackground()) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+                    // Play mode forgoes the Scaffold's inset entirely - with the
+                    // system bars hidden it would still leave a dead strip above
+                    // the pad, which is exactly what play mode exists to remove.
+                    .then(if (gamepadPlayMode) Modifier else Modifier.padding(padding))
+                    .screenBackground()
+            ) {
                 if (!isConnected && !isAdvertising) {
                     ConnectionScreen(
                         pairedDevices = pairedDevices,
@@ -1121,7 +1155,7 @@ private fun MainScreen(
                 } else {
                     HorizontalPager(
                         state = pagerState,
-                        userScrollEnabled = !pagerSwipeLocked,
+                        userScrollEnabled = !pagerSwipeLocked && !gamepadPlayMode,
                         modifier = Modifier.fillMaxSize()
                     ) { page ->
                         when (page) {
@@ -1142,7 +1176,12 @@ private fun MainScreen(
                             2 -> GamepadScreen(
                                 bleManager = bleManager,
                                 layoutManager = layoutManager,
-                                settingsManager = settingsManager
+                                settingsManager = settingsManager,
+                                playMode = gamepadPlayMode,
+                                playAvailable = gamepadPlayAvailable,
+                                // Toggles in both directions: the chevron uses it to
+                                // step out, the header's expand button to step back in.
+                                onTogglePlayMode = { gamepadPlayHidden = !gamepadPlayHidden }
                             )
                             3 -> MultimediaScreen(
                                     bleManager = bleManager,

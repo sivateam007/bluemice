@@ -83,7 +83,18 @@ fun CustomLayoutView(
     flexibleRows: Boolean = false,
     hapticsEnabled: Boolean = false,
     onStickTouch: (String, Float, Float, Boolean) -> Unit = { _, _, _, _ -> },
-    onKeySent: ((LayoutKey) -> Unit)? = null
+    onKeySent: ((LayoutKey) -> Unit)? = null,
+    /**
+     * Multiplier applied to every key's natural height.
+     *
+     * Width is already fluid - each row splits itself by weight - so the only
+     * thing that can make a pad overflow a landscape viewport is height. Scaling
+     * the height lets the pad be sized to the viewport instead of to a fixed dp
+     * table, which is what "fits the screen" has to mean on a phone. Sticks and
+     * D-pads fitted to `min(width, height)`, so growing height grows them
+     * without turning them into ovals.
+     */
+    heightScale: Float = 1f
 ) {
     val haptics = LocalHapticFeedback.current
 
@@ -119,7 +130,8 @@ fun CustomLayoutView(
                         haptics = haptics,
                         hapticsEnabled = hapticsEnabled,
                         onStickTouch = onStickTouch,
-                        onKeySent = onKeySent
+                        onKeySent = onKeySent,
+                        heightScale = heightScale
                     )
                 }
             }
@@ -143,6 +155,27 @@ private fun widgetHeight(key: LayoutKey): Dp {
         else -> 48f
     }
     return (base * key.height.coerceIn(0.75f, 2.5f)).dp
+}
+
+/**
+ * Height a [layout] occupies at `heightScale = 1`, matching [CustomLayoutView]
+ * exactly: the tallest key in each row, plus the 6dp gap the column puts
+ * between rows.
+ *
+ * This has to be computed rather than measured, because the scale factor is
+ * needed *before* the first frame - a measurement round-trip would draw the pad
+ * at the wrong size and then jump. Rows are deterministic (every key carries an
+ * explicit height and `fillHeight` only engages when `flexibleRows` is on), so
+ * the arithmetic is exact for the gamepad pad.
+ */
+fun padNaturalHeight(layout: LayoutDefinition, rowGap: Dp = 6.dp): Dp {
+    if (layout.rows.isEmpty()) return 0.dp
+    var total = 0.dp
+    layout.rows.forEachIndexed { index, row ->
+        total += (row.keys.maxOfOrNull { widgetHeight(it) } ?: 0.dp)
+        if (index < layout.rows.lastIndex) total += rowGap
+    }
+    return total
 }
 
 /* ------------------------------------------------------------------ *
@@ -299,10 +332,12 @@ private fun KeyCell(
     haptics: HapticFeedback,
     hapticsEnabled: Boolean,
     onStickTouch: (String, Float, Float, Boolean) -> Unit,
-    onKeySent: ((LayoutKey) -> Unit)?
+    onKeySent: ((LayoutKey) -> Unit)?,
+    heightScale: Float = 1f
 ) {
     val slotModifier = baseModifier.then(
-        if (fillHeight) Modifier.fillMaxHeight() else Modifier.height(widgetHeight(key))
+        if (fillHeight) Modifier.fillMaxHeight()
+        else Modifier.height(widgetHeight(key) * heightScale)
     )
 
     // A spacer is layout geometry, not a control: it holds a gap open so keys on

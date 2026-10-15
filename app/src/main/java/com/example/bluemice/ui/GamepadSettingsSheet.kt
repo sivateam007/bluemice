@@ -70,6 +70,8 @@ private val padButtons = listOf(
 fun GamepadSettingsSheet(
     config: GamepadConfig,
     onConfigChange: (GamepadConfig) -> Unit,
+    padOpacity: Float = 1f,
+    onPadOpacityChange: (Float) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -155,6 +157,19 @@ fun GamepadSettingsSheet(
                 value = draft.triggerThreshold, valueText = "%.0f%%".format(draft.triggerThreshold * 100),
                 range = 0f..1f
             ) { commit(draft.copy(triggerThreshold = it)) }
+
+            // ------------------------------------------------------ play mode
+            SectionLabel("Play Mode")
+            SliderRow(
+                label = "Pad opacity",
+                value = padOpacity, valueText = "%.0f%%".format(padOpacity * 100),
+                range = 0.2f..1f
+            ) { onPadOpacityChange(it) }
+            Text(
+                "Used in play mode (landscape + Fullscreen), where the pad is the only thing on screen. " +
+                    "Drop it so the game stays visible underneath.",
+                color = TextSecondary, fontSize = 10.sp
+            )
 
             // ---------------------------------------------------------- remap
             SectionLabel("Button Remap")

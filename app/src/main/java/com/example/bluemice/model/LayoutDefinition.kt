@@ -669,41 +669,49 @@ object PredefinedLayouts {
     ), "media")
 
     /**
-     * Everything the neon gamepad used to draw: both analog sticks, the d-pad,
-     * face buttons, shoulders and the centre cluster - all remappable keys.
-     */
-    /**
-     * Landscape-first controller geometry.
+     * Landscape-first controller geometry, designed around where the hands are.
      *
-     * Every row uses the same 4 | 4 | 4 weight split, so the three clusters line
-     * up column-for-column down the whole pad - that alignment is what makes it
-     * read as a controller instead of a stack of unrelated rows. Placement follows
-     * the standard Xbox order: shoulders on the top edge (index fingers), left
-     * stick above the D-pad, face buttons above the right stick, everything else
-     * in the thumb arc. Three rows keeps it inside a landscape viewport.
+     * All three rows share one 6 | 4 | 6 weight split, so the centre gap is a
+     * single aligned column from top to bottom. That alignment is what makes it
+     * read as a controller instead of a stack of unrelated rows - and it is the
+     * reason the thumb clusters never drift into each other.
+     *
+     * Placement follows two findings rather than the Xbox shape:
+     *
+     * - The MuC '24 smartphone-gamepad study found a fixed Xbox clone scored
+     *   *worst* and the customisable one best, and that Select/Start "serve no
+     *   gameplay purpose in most games". They are dropped here and stay one tap
+     *   away in the palette, so anyone who wants them adds them back.
+     * - Otten's thumb-reach envelopes put the comfortable zone in the lower
+     *   corners. The sticks are the primary control, so they own the bottom row;
+     *   the D-pad and face buttons sit above them, where a thumb reaches up
+     *   rather than settling. Shoulders stay on the very top edge for the index
+     *   fingers, grouped left and right with the middle left open.
+     *
+     * Sticks and pads run at 1.5x height (120dp natural) so the pad has real
+     * vertical mass to fill a landscape viewport with - [GAMEPAD_DEFAULT] is
+     * 300dp before play mode scales it to fit.
      */
     val GAMEPAD_DEFAULT = LayoutDefinition("Gamepad Default", listOf(
-        // R1 - shoulders + centre pair. 48dp tall (the Material minimum).
+        // R1 - shoulders on the top edge, grouped per side.
         LayoutRow(listOf(
-            LayoutKey("LB", isGamepad = true, gamepadButton = 4, width = 2f, backgroundColor = 0xFF2A3A4A),
-            LayoutKey("LT", isGamepad = true, gamepadButton = 6, width = 2f, backgroundColor = 0xFF2A3A4A),
-            LayoutKey("Sel", isGamepad = true, gamepadButton = 8, width = 2f, backgroundColor = 0xFF2A2A3A),
-            LayoutKey("Start", isGamepad = true, gamepadButton = 9, width = 2f, backgroundColor = 0xFF2A2A3A),
-            LayoutKey("RB", isGamepad = true, gamepadButton = 5, width = 2f, backgroundColor = 0xFF2A3A4A),
-            LayoutKey("RT", isGamepad = true, gamepadButton = 7, width = 2f, backgroundColor = 0xFF2A3A4A)
-        )),
-        // R2 - left stick upper-left, ABXY diamond upper-right, empty centre.
-        LayoutRow(listOf(
-            LayoutKey("Left Stick", keyType = "stickL", width = 4f),
+            LayoutKey("LB", isGamepad = true, gamepadButton = 4, width = 3f, backgroundColor = 0xFF2A3A4A),
+            LayoutKey("LT", isGamepad = true, gamepadButton = 6, width = 3f, backgroundColor = 0xFF2A3A4A),
             LayoutKey("", keyType = "spacer", width = 4f),
-            LayoutKey("ABXY", keyType = "face", width = 4f, backgroundColor = 0xFF14202E)
+            LayoutKey("RT", isGamepad = true, gamepadButton = 7, width = 3f, backgroundColor = 0xFF2A3A4A),
+            LayoutKey("RB", isGamepad = true, gamepadButton = 5, width = 3f, backgroundColor = 0xFF2A3A4A)
         )),
-        // R3 - D-pad lower-left, right stick lower-right, stick clicks in the middle.
+        // R2 - secondary thumb controls, above the sticks.
         LayoutRow(listOf(
-            LayoutKey("D-Pad", keyType = "dpad", width = 4f, backgroundColor = 0xFF14202E),
-            LayoutKey("L3", isGamepad = true, gamepadButton = 10, width = 2f, backgroundColor = 0xFF2A2A3A),
-            LayoutKey("R3", isGamepad = true, gamepadButton = 11, width = 2f, backgroundColor = 0xFF2A2A3A),
-            LayoutKey("Right Stick", keyType = "stickR", width = 4f)
+            LayoutKey("D-Pad", keyType = "dpad", width = 6f, height = 1.5f, backgroundColor = 0xFF14202E),
+            LayoutKey("", keyType = "spacer", width = 4f),
+            LayoutKey("ABXY", keyType = "face", width = 6f, height = 1.5f, backgroundColor = 0xFF14202E)
+        )),
+        // R3 - both sticks in the bottom corners, where the thumbs rest.
+        LayoutRow(listOf(
+            LayoutKey("Left Stick", keyType = "stickL", width = 6f, height = 1.5f),
+            LayoutKey("", keyType = "spacer", width = 4f),
+            LayoutKey("Right Stick", keyType = "stickR", width = 6f, height = 1.5f)
         ))
     ), "gamepad")
 

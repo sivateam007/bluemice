@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +27,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,11 +48,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import com.example.bluemice.ui.theme.CardSurface
 import com.example.bluemice.ui.theme.TextPrimary
 import com.example.bluemice.ui.theme.TextSecondary
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -75,7 +80,22 @@ fun GamepadScreen(
     bleManager: BleHidManager,
     onEdit: () -> Unit = {},
     layoutManager: LayoutManager? = null,
-    settingsManager: SettingsManager? = null
+    settingsManager: SettingsManager? = null,
+    /**
+     * The pad should own the window: landscape, Fullscreen on, this tab open.
+     * Header and layout bar step aside (the activity's top bar does the same)
+     * so the only thing on screen is the controller.
+     *
+     * It still yields while the edit canvas is open - the edit bar is chrome you
+     * need in order to get back out.
+     */
+    playMode: Boolean = false,
+    /**
+     * Play mode is *available* but currently dismissed. The header then offers a
+     * way back in, so entering and leaving play mode is symmetric.
+     */
+    playAvailable: Boolean = false,
+    onTogglePlayMode: () -> Unit = {}
 ) {
     var leftX by remember { mutableStateOf(0f) }
     var leftY by remember { mutableStateOf(0f) }
@@ -231,23 +251,74 @@ fun GamepadScreen(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    Box(Modifier.fillMaxSize().screenBackground()) {
+    // Play mode is the strict form of playMode: it steps aside the instant the
+    // editor opens. Everything keyed on this - padding, scrolling, chrome, the
+    // exit affordance - is derived from one place so the modes cannot drift.
+    val playing = playMode && !isEditing
+    // Pad opacity, honoured only while playing: a solid pad over a game is an
+    // obstruction, and outside play mode there is nothing to see through it.
+    // State rather than a plain read, so the slider in the settings sheet and
+    // the pad itself move together.
+    var padOpacity by remember { mutableStateOf(settingsManager?.gamepadPadOpacity ?: 1f) }
+
+    // The exit affordance fades a few seconds after the last touch and returns
+    // on the next one, so it never sits over a control mid-game. Resetting on a
+    // *new* press rather than any move means dragging a stick keeps it hidden.
+    var exitVisible by remember { mutableStateOf(true) }
+    var exitTick by remember { mutableIntStateOf(0) }
+    LaunchedEffect(exitTick, playing) {
+        if (playing) {
+            delay(3000)
+            exitVisible = false
+        } else {
+            exitVisible = true
+        }
+    }
+
+    Box(
+        Modifier.fillMaxSize().screenBackground()
+            // Observed at the Initial pass and never consumed, so the keys
+            // underneath still get every event - this only watches for a down.
+            .then(
+                if (playing) Modifier.pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            if (event.changes.any { it.pressed && !it.previousPressed }) exitTick++
+                        }
+                    }
+                } else Modifier
+            )
+    ) {
         Column(
             modifier = Modifier.fillMaxSize()
                 .padding(
-                    start = 8.dp, end = 8.dp,
-                    top = if (isLandscape) 4.dp else 8.dp,
+                    // Play mode gives the pad every pixel - no gutters, because
+                    // there is no chrome left for them to frame.
+                    start = if (playing) 0.dp else 8.dp,
+                    end = if (playing) 0.dp else 8.dp,
+                    top = if (playing) 0.dp else if (isLandscape) 4.dp else 8.dp,
                     // Reserve the strip the floating EditModeBar occupies, so the
                     // last row (and its Save/Done controls) are never covered.
-                    bottom = if (isEditing) 64.dp else if (isLandscape) 4.dp else 8.dp
+                    bottom = if (isEditing) 64.dp else if (playing) 0.dp
+                    else if (isLandscape) 4.dp else 8.dp
                 )
         ) {
+            if (!playing) {
             ScreenHeader(
                 title = "Gamepad",
                 subtitle = if (padConfig.preset == GamepadConfig.PRESET_XBOX) "Xbox layout" else padConfig.preset,
                 accent = CyanNeon,
                 scrollActions = true
             ) {
+                // Play mode is on but dismissed - give a way back without a
+                // detour through the drawer.
+                if (playAvailable && !playMode && !isEditing) {
+                    IconButton(onClick = onTogglePlayMode) {
+                        Icon(Icons.Default.Fullscreen, "Enter play mode",
+                            tint = CyanNeon, modifier = Modifier.size(20.dp))
+                    }
+                }
                 IconButton(onClick = { showPadSettings = true }) {
                     Icon(Icons.Default.Settings, "Gamepad settings", tint = TextSecondary, modifier = Modifier.size(20.dp))
                 }
@@ -296,14 +367,19 @@ fun GamepadScreen(
                     }
                 }
             )
+            }
 
             // One framed panel holds the pad in both orientations - it keeps the grid
             // aligned and gives portrait and landscape the same surface to sit in.
-            // One scrollable framed panel for both modes: a default pad with 180dp
-            // sticks plus five rows overflows a landscape viewport.
+            //
+            // Scrolling is the fallback, never the plan: a controller you have to
+            // scroll is unusable, so play mode turns scrolling off and scales the
+            // pad to the viewport instead. The edit canvas keeps it, because an
+            // editor is the one place scrolling is the right answer.
             ScreenPanel(
-                Modifier.weight(1f),
-                scroll = true,
+                Modifier.weight(1f)
+                    .then(if (playing) Modifier.graphicsLayer { alpha = padOpacity } else Modifier),
+                scroll = !playing,
                 contentAlignment = if (isLandscape) Alignment.Center else Alignment.TopCenter
             ) {
                 if (isEditing && testMode) {
@@ -381,6 +457,28 @@ fun GamepadScreen(
                         onRestoreDefault = { layoutManager?.resetToDefault("gamepad") },
                         onAddKeys = { isEditing = true }
                     )
+                } else if (playing) {
+                    // Size the pad to the viewport rather than to a fixed dp table.
+                    //
+                    // Width is already fluid - every row splits itself by weight -
+                    // so height is the only axis that can overflow, and it is the
+                    // only one we scale. Solving `natural * scale == maxHeight` is
+                    // exact rather than measured, so the pad lands on the first
+                    // frame instead of drawing at one size and jumping to another.
+                    // The clamp caps how far it may *grow* (a phone pad does not
+                    // want to be 3x) and refuses to shrink past the point where the
+                    // keys stop being tappable - that is the honest signal that the
+                    // layout is simply too tall for landscape.
+                    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        val natural = padNaturalHeight(currentLayout!!)
+                        val scale = if (natural > 0.dp)
+                            (maxHeight / natural).coerceIn(0.55f, 1.6f) else 1f
+                        CustomLayoutView(currentLayout!!, bleManager,
+                            heightScale = scale,
+                            onStickTouch = { id, x, y, t ->
+                                if (id == "L") { leftX = x; leftY = y; isLeftTouched = t } else { rightX = x; rightY = y; isRightTouched = t }
+                            })
+                    }
                 } else {
                     CustomLayoutView(currentLayout!!, bleManager,
                         onStickTouch = { id, x, y, t ->
@@ -421,6 +519,31 @@ fun GamepadScreen(
                     onRedo = { layoutHistory.redo(editRows)?.let { editRows = it.map { r -> r.toMutableList() } } },
                     onExit = { isEditing = false; saveLayout(editRows) }
                 )
+            }
+        }
+
+        // Play mode's only control. It lands in the pad's centre column - the
+        // aligned gap between the left and right clusters - which is dead space
+        // by construction, so it never covers a key. Fades while you play.
+        if (playing) {
+            Box(
+                Modifier.align(Alignment.BottomCenter)
+                    .padding(bottom = 10.dp)
+                    .graphicsLayer { alpha = if (exitVisible) 1f else 0f }
+                    .clip(CircleShape)
+                    .background(Color(0xE6101828))
+                    .border(1.dp, Color(0x40FFFFFF), CircleShape)
+                    // Disabled while invisible so an invisible target cannot
+                    // swallow a press meant for the pad underneath.
+                    .clickable(enabled = exitVisible) { onTogglePlayMode() }
+                    .padding(horizontal = 16.dp, vertical = 9.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.FullscreenExit, "Leave play mode",
+                        tint = CyanNeon, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Exit", color = CyanNeon, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                }
             }
         }
     }
@@ -521,6 +644,11 @@ fun GamepadScreen(
             onConfigChange = { next ->
                 padConfig = next
                 settingsManager?.gamepadConfig = next
+            },
+            padOpacity = padOpacity,
+            onPadOpacityChange = { v ->
+                padOpacity = v
+                settingsManager?.gamepadPadOpacity = v
             },
             onDismiss = { showPadSettings = false }
         )
