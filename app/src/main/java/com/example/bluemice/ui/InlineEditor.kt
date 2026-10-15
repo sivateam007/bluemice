@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -466,6 +467,8 @@ fun EditModeBar(
     onImport: (() -> Unit)? = null,
     onExport: (() -> Unit)? = null,
     onNewBlank: () -> Unit = {},
+    selectMode: Boolean = false,
+    onToggleSelectMode: () -> Unit = {},
     canUndo: Boolean = false,
     canRedo: Boolean = false,
     onUndo: (() -> Unit)? = null,
@@ -541,6 +544,22 @@ fun EditModeBar(
                 Icon(Icons.Default.Add, null, tint = TextSecondary, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(2.dp))
                 Text("Row", color = TextSecondary, fontSize = 11.sp)
+            }
+        }
+        Spacer(Modifier.width(4.dp))
+        // Select mode: tap keys to gather them, then batch size/colour/style
+        // from the bar that appears. Amber while armed so it is obvious why
+        // taps stopped opening the editor.
+        Box(Modifier.clip(RoundedCornerShape(6.dp))
+            .background(if (selectMode) Color(0xFF3A3320) else Color(0xFF2A2A3A))
+            .clickable { onToggleSelectMode() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Checklist, null,
+                    tint = if (selectMode) Color(0xFFFFCA28) else TextSecondary,
+                    modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(2.dp))
+                Text(if (selectMode) "Selecting" else "Select",
+                    color = if (selectMode) Color(0xFFFFCA28) else TextSecondary, fontSize = 11.sp)
             }
         }
         if (onImport != null) {

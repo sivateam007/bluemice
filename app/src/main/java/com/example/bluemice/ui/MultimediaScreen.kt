@@ -100,6 +100,8 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
     var showPositionPicker by remember { mutableStateOf(false) }
     // Set when the user tapped a row's + slot - the key then lands at that row's end.
     var addTargetRow by remember { mutableIntStateOf(-1) }
+    // Batch-edit mode: taps gather keys instead of opening the per-key sheet.
+    var selectMode by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val layoutHistory = remember { LayoutHistory() }
@@ -221,6 +223,29 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
                         editingKey = editRows[ri][ki]
                         showEditKeySheet = true
                     },
+                    selectMode = selectMode,
+                    onBatchTransform = { coords, fn ->
+                        pushUndoSnapshot()
+                        val newRows = editRows.map { it.toMutableList() }
+                        coords.forEach { (r, k) ->
+                            if (r in newRows.indices && k in newRows[r].indices) {
+                                newRows[r][k] = fn(newRows[r][k])
+                            }
+                        }
+                        editRows = newRows
+                    },
+                    onBatchDelete = { coords ->
+                        pushUndoSnapshot()
+                        val newRows = editRows.map { it.toMutableList() }
+                        coords.sortedByDescending { it.first }.groupBy { it.first }
+                            .forEach { (r, keys) ->
+                                if (r in newRows.indices) {
+                                    keys.map { it.second }.sortedDescending()
+                                        .forEach { k -> if (k in newRows[r].indices) newRows[r].removeAt(k) }
+                                }
+                            }
+                        editRows = newRows
+                    },
                     history = layoutHistory,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -256,7 +281,9 @@ fun MultimediaScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutM
                     onSave = { saveLayout(editRows) },
                     onAddKey = { showAddKeySheet = true },
                     onAddRow = { pushUndoSnapshot(); editRows = editRows + listOf(mutableListOf<LayoutKey>()) },
-                                        onNewBlank = { pushUndoSnapshot(); editRows = listOf(mutableListOf<LayoutKey>()) },
+                                        onNewBlank = { pushUndoSnapshot(); editRows = listOf(mutableListOf<LayoutKey>(), mutableListOf<LayoutKey>()) },
+                selectMode = selectMode,
+                onToggleSelectMode = { selectMode = !selectMode },
                     onImport = { importLauncher.launch(arrayOf("application/json")) },
                     onExport = { exportLauncher.launch("bluemice-media-layout.json") },
                     canUndo = layoutHistory.undoStack.isNotEmpty(),

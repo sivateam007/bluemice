@@ -627,6 +627,13 @@ fun EditableLayoutView(
     onQuickColor: (Int, Int, Long) -> Unit = { _, _, _ -> },
     // Invoked when the user wants the full picker instead of the quick palette.
     onRequestFullPicker: (Int, Int) -> Unit = { _, _ -> },
+    // Multi-select: when the caller turns this on, taps toggle membership
+    // instead of opening the per-key editor.
+    selectMode: Boolean = false,
+    // Batch edits over the current selection. One rebuild per gesture rather
+    // than one per key, so undo has a single meaningful step.
+    onBatchTransform: (List<Pair<Int, Int>>, (LayoutKey) -> LayoutKey) -> Unit = { _, _ -> },
+    onBatchDelete: (List<Pair<Int, Int>>) -> Unit = {},
     history: LayoutHistory? = null,
     modifier: Modifier = Modifier
 ) {
@@ -636,6 +643,12 @@ fun EditableLayoutView(
     var selectedKey by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     // Which key's quick-colour popup is open (null = none).
     var quickColorKey by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    // Keys chosen in select mode. Backed by a snapshot list so recomposition
+    // notices membership changes.
+    var multiSelected by remember { mutableStateOf(listOf<Pair<Int, Int>>()) }
+    // Batch colour palette target: when set, the quick palette writes to every
+    // selected key rather than the one it was opened from.
+    var batchColorOpen by remember { mutableStateOf(false) }
     // Two-step swap: arm Swap on the selected key, then tap the target key.
     var swapSource by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val pushU: () -> Unit = { history?.push(rows.map { it.toList() }) }
@@ -756,11 +769,19 @@ fun EditableLayoutView(
                                     .border(borderW, when {
                                         isDragOrig -> Color(0xFF00E5FF).copy(alpha = 0.5f)
                                         isSelected -> Color(0xFF00E5FF)
+                                        multiSelected.contains(ri to ki) -> Color(0xFFFFCA28)
                                         isSpacer -> Color.Transparent
                                         else -> Color(0x24FFFFFF)
                                     }, RoundedCornerShape(radius))
                                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                                        if (dragStart == null) {
+                                        if (selectMode) {
+                                            // Select mode: the tap toggles membership and
+                                            // nothing else. No editor, no swap.
+                                            multiSelected =
+                                                if (multiSelected.contains(ri to ki))
+                                                    multiSelected.filterNot { it == (ri to ki) }
+                                                else multiSelected + (ri to ki)
+                                        } else if (dragStart == null) {
                                             // A swap is pending: this tap picks the target
                                             // and completes it instead of opening the editor.
                                             val src = swapSource
@@ -1095,6 +1116,79 @@ fun EditableLayoutView(
                         .clickable { quickColorKey = null; onRequestFullPicker(qri, qki) },
                         contentAlignment = Alignment.Center) {
                         Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+        }
+
+        // Batch toolbar. Appears only with a live selection, and only offers
+        // operations that are safe to apply across keys: size, colour, text
+        // treatment and delete. What a key sends is never batched - recolouring
+        // a row must not rewrite its actions.
+        if (multiSelected.isNotEmpty()) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                .background(CardSurface).padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${multiSelected.size} selected", color = Color(0xFFFFCA28),
+                        fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF2A2A3A))
+                        .clickable { multiSelected = emptyList() }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                        Text("Clear", color = TextSecondary, fontSize = 10.sp)
+                    }
+                    Spacer(Modifier.width(4.dp))
+                    Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFF3A1A1A))
+                        .clickable { onBatchDelete(multiSelected); multiSelected = emptyList() }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)) {
+                        Text("Delete", color = Color(0xFFEF5350), fontSize = 10.sp)
+                    }
+                }
+                if (batchColorOpen) {
+                    val batchPalette = listOf(
+                        0xFF2A2A32L, 0xFF37474FL, 0xFF4A90D9L, 0xFF26A69AL,
+                        0xFF66BB6AL, 0xFF9CCC65L, 0xFFFFCA28L, 0xFFFFA726L,
+                        0xFFEF5350L, 0xFFEC407AL, 0xFFAB47BCL, 0xFF7E57C2L,
+                        0xFF5C6BC0L, 0xFF29B6F6L, 0xFF8D6E63L, 0xFF78909CL
+                    )
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        batchPalette.forEach { c ->
+                            Box(Modifier.size(24.dp).clip(CircleShape).background(Color(c))
+                                .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                                .clickable {
+                                    RecentColors.push(c)
+                                    onBatchTransform(multiSelected) { it.copy(backgroundColor = c) }
+                                    batchColorOpen = false
+                                })
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ToolChip("Colour", Color(0xFFB39DDB)) { batchColorOpen = !batchColorOpen }
+                    ToolChip("W\u2212", Color(0xFF00E5FF)) {
+                        onBatchTransform(multiSelected) { it.copy(width = (it.width - 0.5f).coerceAtLeast(0.5f)) }
+                    }
+                    ToolChip("W+", Color(0xFF00E5FF)) {
+                        onBatchTransform(multiSelected) { it.copy(width = (it.width + 0.5f).coerceAtMost(4f)) }
+                    }
+                    ToolChip("H\u2212", Color(0xFF66BB6A)) {
+                        onBatchTransform(multiSelected) { it.copy(height = (it.height - 0.25f).coerceAtLeast(0.75f)) }
+                    }
+                    ToolChip("H+", Color(0xFF66BB6A)) {
+                        onBatchTransform(multiSelected) { it.copy(height = (it.height + 0.25f).coerceAtMost(2.5f)) }
+                    }
+                    ToolChip("Bold", Color(0xFF4A90D9)) {
+                        onBatchTransform(multiSelected) { it.copy(boldText = !it.boldText) }
+                    }
+                    ToolChip("Square", Color(0xFF4A90D9)) {
+                        onBatchTransform(multiSelected) { it.copy(cornerRadius = 0f) }
+                    }
+                    ToolChip("Round", Color(0xFF4A90D9)) {
+                        onBatchTransform(multiSelected) { it.copy(cornerRadius = 12f) }
+                    }
+                    ToolChip("Solid", Color(0xFF4A90D9)) {
+                        onBatchTransform(multiSelected) { it.copy(opacity = 1f, glow = 0f) }
                     }
                 }
             }

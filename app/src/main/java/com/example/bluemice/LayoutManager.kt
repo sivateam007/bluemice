@@ -3,6 +3,7 @@ package com.example.bluemice
 import android.content.Context
 import android.content.SharedPreferences
 import com.example.bluemice.model.LayoutDefinition
+import com.example.bluemice.model.LayoutRow
 import com.example.bluemice.model.PredefinedLayouts
 import org.json.JSONArray
 import org.json.JSONObject
@@ -169,7 +170,12 @@ class LayoutManager(context: Context) {
      */
     fun createLayout(mode: String, templateName: String): LayoutDefinition {
         val template = PredefinedLayouts.all.find { it.mode == mode && it.name == templateName }
-        val rows = template?.rows ?: emptyList()
+        // A blank layout starts with two empty rows rather than none, so the
+        // row structure is visible the moment the editor opens instead of an
+        // empty screen with no affordance.
+        val rows = template?.rows ?: listOf(
+            LayoutRow(emptyList()), LayoutRow(emptyList())
+        )
         val base = template?.name ?: "New Layout"
         var name = base
         var i = 2
