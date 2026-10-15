@@ -623,6 +623,10 @@ fun EditableLayoutView(
     onAddToRow: (Int) -> Unit = {},
     onDuplicateKey: (Int, Int) -> Unit = { _, _ -> },
     onStickTouch: (String, Float, Float, Boolean) -> Unit = { _, _, _, _ -> },
+    // Quick recolor: applied directly from the swatch dot on each key.
+    onQuickColor: (Int, Int, Long) -> Unit = { _, _, _ -> },
+    // Invoked when the user wants the full picker instead of the quick palette.
+    onRequestFullPicker: (Int, Int) -> Unit = { _, _ -> },
     history: LayoutHistory? = null,
     modifier: Modifier = Modifier
 ) {
@@ -630,6 +634,8 @@ fun EditableLayoutView(
     var dragStart by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var dragAccum by remember { mutableFloatStateOf(0f) }
     var selectedKey by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    // Which key's quick-colour popup is open (null = none).
+    var quickColorKey by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     // Two-step swap: arm Swap on the selected key, then tap the target key.
     var swapSource by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val pushU: () -> Unit = { history?.push(rows.map { it.toList() }) }
@@ -807,6 +813,21 @@ fun EditableLayoutView(
                                         )
                                     },
                                     contentAlignment = Alignment.Center) {
+                                    // Inline colour dot: shows the key's face colour at a
+                                    // glance and opens a quick palette on tap. This is the
+                                    // "I want it blue" affordance that was missing — the
+                                    // full editor buries colour three taps deep.
+                                    if (!isSpacer) {
+                                        Box(Modifier.align(Alignment.TopStart)
+                                            .padding(start = 3.dp, top = 3.dp)
+                                            .size(13.dp)
+                                            .clip(CircleShape)
+                                            .background(bgColor)
+                                            .border(1.dp, Color.White.copy(alpha = 0.55f), CircleShape)
+                                            .clickable {
+                                                quickColorKey = if (quickColorKey == ri to ki) null else (ri to ki)
+                                            })
+                                    }
                                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF202030))
@@ -1014,6 +1035,66 @@ fun EditableLayoutView(
                         ToolChip("H+", Color(0xFF66BB6A)) { pushU(); onResizeHeight(sri, ski, (sk.height + 0.25f).coerceAtMost(2.5f)) }
                         ToolChip("=1 Row", Color(0xFFB39DDB)) { pushU(); onEqualizeRow(sri) }
                         ToolChip("Max Row", Color(0xFFB39DDB)) { pushU(); onAlignRow(sri) }
+                    }
+                }
+            }
+        }
+
+        // Quick-colour palette. Anchored to the swatch dot; recolors without
+        // opening the full sheet, and offers the full picker as an escape hatch
+        // when the 16 swatches are not enough.
+        quickColorKey?.let { (qri, qki) ->
+            val qk = rows.getOrNull(qri)?.getOrNull(qki) ?: return@let
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                .background(CardSurface).padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Colour \u00B7 ${qk.label.ifEmpty { "Key" }}", color = AccentCyan,
+                        fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Box(Modifier.size(18.dp).clip(CircleShape).background(Color(0xFF3A1A1A))
+                        .clickable { quickColorKey = null }, contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Close, null, tint = Color(0xFFEF5350), modifier = Modifier.size(11.dp))
+                    }
+                }
+                // Two rows: what you have used before (the most likely answer),
+                // then a curated ramp covering hue and value. 24 total, so the
+                // right one is one thumb-move away without a scrolling wheel.
+                val recents = RecentColors.all.take(8)
+                val quickPalette = listOf(
+                    0xFF2A2A32L, 0xFF37474FL, 0xFF4A90D9L, 0xFF26A69AL,
+                    0xFF66BB6AL, 0xFF9CCC65L, 0xFFFFCA28L, 0xFFFFA726L,
+                    0xFFEF5350L, 0xFFEC407AL, 0xFFAB47BCL, 0xFF7E57C2L,
+                    0xFF5C6BC0L, 0xFF29B6F6L, 0xFF8D6E63L, 0xFF78909CL
+                )
+                if (recents.isNotEmpty()) {
+                    Text("Recent", color = TextSecondary, fontSize = 9.sp)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        recents.forEach { c ->
+                            val active = qk.backgroundColor == c
+                            Box(Modifier.size(22.dp).clip(CircleShape).background(Color(c))
+                                .border(if (active) 3.dp else 1.dp,
+                                    if (active) Color.White else Color.White.copy(alpha = 0.3f), CircleShape)
+                                .clickable { pushU(); onQuickColor(qri, qki, c) })
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    quickPalette.forEach { c ->
+                        val active = qk.backgroundColor == c
+                        Box(Modifier.size(26.dp).clip(CircleShape).background(Color(c))
+                            .border(if (active) 3.dp else 1.dp,
+                                if (active) Color.White else Color.White.copy(alpha = 0.3f), CircleShape)
+                            .clickable { pushU(); RecentColors.push(c); onQuickColor(qri, qki, c) })
+                    }
+                    // Escape hatch to the full HSV picker.
+                    Box(Modifier.size(26.dp).clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(Color(0xFFEF5350), Color(0xFFFFCA28), Color(0xFF66BB6A), Color(0xFF29B6F6), Color(0xFFAB47BC))))
+                        .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                        .clickable { quickColorKey = null; onRequestFullPicker(qri, qki) },
+                        contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(14.dp))
                     }
                 }
             }

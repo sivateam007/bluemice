@@ -324,6 +324,18 @@ fun GamepadScreen(
                         if (id == "L") { leftX = x; leftY = y; isLeftTouched = t } else { rightX = x; rightY = y; isRightTouched = t }
                     },
                     onAddToRow = { ri -> addTargetRow = ri; showAddKeySheet = true },
+                    onQuickColor = { ri, ki, c ->
+                        val newRows = editRows.toMutableList()
+                        val nr = newRows[ri].toMutableList()
+                        nr[ki] = nr[ki].copy(backgroundColor = c)
+                        newRows[ri] = nr
+                        editRows = newRows
+                    },
+                    onRequestFullPicker = { ri, ki ->
+                        editRowIdx = ri; editKeyIdx = ki
+                        editingKey = editRows[ri][ki]
+                        showEditKeySheet = true
+                    },
                     history = layoutHistory,
                     modifier = Modifier.fillMaxWidth()
                 )

@@ -274,6 +274,18 @@ fun KeyboardScreen(bleManager: BleHidManager, onEdit: () -> Unit = {}, layoutMan
                     onAlignRow = { ri -> val mx = editRows[ri].maxOf { it.width }; val newRows = editRows.toMutableList(); newRows[ri] = editRows[ri].map { it.copy(width = mx) }.toMutableList(); editRows = newRows },
                     onDuplicateKey = { ri, ki -> val newRows = editRows.toMutableList(); val nr = newRows[ri].toMutableList(); nr.add(ki + 1, nr[ki]); newRows[ri] = nr; editRows = newRows },
                     onAddToRow = { ri -> addTargetRow = ri; showAddKeySheet = true },
+                    onQuickColor = { ri, ki, c ->
+                        val newRows = editRows.toMutableList()
+                        val nr = newRows[ri].toMutableList()
+                        nr[ki] = nr[ki].copy(backgroundColor = c)
+                        newRows[ri] = nr
+                        editRows = newRows
+                    },
+                    onRequestFullPicker = { ri, ki ->
+                        editRowIdx = ri; editKeyIdx = ki
+                        editingKey = editRows[ri][ki]
+                        showEditKeySheet = true
+                    },
                     history = layoutHistory,
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
